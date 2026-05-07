@@ -330,13 +330,35 @@ world diff verifies placed block footprint
 
 ### Target 5: Resource/Storage Loop
 
-Definition of done:
+Status: first executable slice implemented.
+
+Done:
+
+```text
+bootstrap_home_storage compiles to getInventory -> placeStorage -> completion
+placeStorage places a chest/barrel already in inventory and records home_storage as a waypoint
+deposit_inventory compiles to getInventory -> depositInventory -> getInventory
+depositInventory uses CC:T drop commands into adjacent storage and protects obvious tools/storage blocks
+drop/suck/craft/detect primitives are available to the planner and mod executor
+route memory persists to run/data/routes.json and is ignored by git
+```
+
+Definition of done for full resource loop:
 
 ```text
 known home storage site exists
 depositInventory behavior exists
 mine loop can pause for inventory upkeep
 evaluator verifies deposit receipts and storage diff
+```
+
+Remaining:
+
+```text
+craft barrel/chest from gathered wood
+return_to_waypoint using persisted route memory
+deposit after navigating to home storage instead of only adjacent storage
+resume original workflow after storage requirement is cleared
 ```
 
 ### Target 5.25: Branch Mining V0

@@ -10,6 +10,7 @@ run/mods/*.jar
 run/worlds/
 run/logs/
 run/data/
+run/build-verify/
 run/traces/
 run/traces-*/
 run/*.log

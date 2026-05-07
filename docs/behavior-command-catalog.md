@@ -72,24 +72,25 @@ scanNearby
 Tier-one still missing:
 
 ```text
-drop
-dropUp
-dropDown
-suck
-suckUp
-suckDown
-craft
 compare
 compareUp
 compareDown
-detect
-detectUp
-detectDown
-markWaypoint
-face
 ```
 
-The critical additions are `craft`, `drop*`, `suck*`, inventory commands, and waypoint marking. Without those, storage bootstrap and long mining workflows stay fake.
+Recently added executor actions:
+
+```text
+drop / dropUp / dropDown
+suck / suckUp / suckDown
+craft
+detect / detectUp / detectDown
+markWaypoint
+returnToPosition
+placeStorage
+depositInventory
+```
+
+The critical remaining inventory/storage gap is no longer adjacent transfer. It is route-aware storage use: return to a known storage waypoint, deposit, and resume the prior worksite.
 
 ## Tier-One Base Skills
 
@@ -473,6 +474,14 @@ Tier-one implementation should move in this order:
 8. place_wall
 9. clear_volume
 10. return_and_deposit
+```
+
+Current storage/upkeep slice:
+
+```text
+bootstrap_home_storage places a chest/barrel already in inventory
+deposit_inventory drops non-protected inventory into adjacent storage
+route memory records storage waypoints
 ```
 
 This gets us to interesting behavior quickly:

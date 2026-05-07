@@ -101,6 +101,21 @@ completeObjective
 
 Storage bootstrap needs `craft` before it is real with a crafting turtle. Without `craft`, the agent can still use storage blocks already in inventory.
 
+Current executable slice:
+
+```text
+turtlequest.bootstrap_home_storage
+turtlequest.deposit_inventory
+placeStorage
+depositInventory
+drop / dropUp / dropDown
+suck / suckUp / suckDown
+craft
+detect / detectUp / detectDown
+```
+
+`bootstrap_home_storage` can place a chest/barrel already in turtle inventory and records it into route memory as `home_storage`. Crafting missing storage is intentionally a later requirement-clearing behavior.
+
 ## Tier One Storage Skills
 
 ### `turtlequest.inspect_inventory`
@@ -218,6 +233,15 @@ depositedItems
 storagePosition
 returnPosition
 failedStacks
+```
+
+Current v0 behavior:
+
+```text
+Assumes storage is adjacent in the requested direction.
+Deposits non-protected stacks.
+Protects obvious tools and storage blocks.
+Emits inventoryDelta from the CC:T drop operation.
 ```
 
 ### `turtlequest.discard_junk`
@@ -378,4 +402,11 @@ Second smoke target:
 
 ```text
 /tq ask nearest gather wood, create a home storage barrel, deposit extra logs, and return here
+```
+
+Current focused smoke targets:
+
+```text
+/tq ask nearest create a home barrel storage and record it
+/tq ask nearest deposit inventory into the storage ahead
 ```

@@ -138,14 +138,13 @@ This is not a complete mining economy yet.
 Not done:
 
 ```text
-deposit to home storage
-craft/place barrel
+deposit to non-adjacent home storage
+craft barrel
 ore-specific mining policy
 torch placement
 fluid/lava handling beyond stop evidence
-route persistence across bridge restarts
 return_to_waypoint
 descending stair mineshaft
 ```
 
-Next durable value comes from making route memory persistent and adding storage/deposit requirements, not from making the branch pattern larger.
+Route memory persistence and adjacent storage deposit now exist. Next durable value comes from `return_to_waypoint`, storage crafting, and workflow resume after upkeep.
