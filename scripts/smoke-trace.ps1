@@ -5,7 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
-$bridgeProject = Join-Path $root "bridge/Agentica.TurtleQuest.Bridge/Agentica.TurtleQuest.Bridge.csproj"
+$bridgeProject = Join-Path $root "bridge/TurtleQuest.Bridge/TurtleQuest.Bridge.csproj"
 $mockPlanner = Join-Path $PSScriptRoot "mock-agentica-planner.ps1"
 $traceDir = Join-Path $root "run/traces-smoke"
 
@@ -17,9 +17,9 @@ $env:TURTLEQUEST_TRACE_DIR = $traceDir
 $env:TURTLEQUEST_TRACE_ENABLED = "true"
 
 if ($UseMock) {
-    $env:AGENTICA_TURTLEQUEST_PLANNER_COMMAND = "powershell"
-    $env:AGENTICA_TURTLEQUEST_PLANNER_ARGS = "-NoProfile -ExecutionPolicy Bypass -File `"$mockPlanner`""
-    $env:AGENTICA_TURTLEQUEST_PLANNER_CWD = $root
+    $env:TURTLEQUEST_AGENTICA_PLANNER_COMMAND = "powershell"
+    $env:TURTLEQUEST_AGENTICA_PLANNER_ARGS = "-NoProfile -ExecutionPolicy Bypass -File `"$mockPlanner`""
+    $env:TURTLEQUEST_AGENTICA_PLANNER_CWD = $root
 }
 
 function Wait-Bridge {

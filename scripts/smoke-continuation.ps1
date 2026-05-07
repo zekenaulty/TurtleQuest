@@ -5,7 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
-$bridgeProject = Join-Path $root "bridge/Agentica.TurtleQuest.Bridge/Agentica.TurtleQuest.Bridge.csproj"
+$bridgeProject = Join-Path $root "bridge/TurtleQuest.Bridge/TurtleQuest.Bridge.csproj"
 $continuationPlanPath = Join-Path $root "fixtures/continuation/emit-status-complete-plan.json"
 
 function Wait-Bridge {

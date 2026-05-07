@@ -1,9 +1,9 @@
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
-$bridgeProject = Join-Path $root "bridge/Agentica.TurtleQuest.Bridge/Agentica.TurtleQuest.Bridge.csproj"
-$plannerProject = Join-Path $root "planner/Agentica.TurtleQuest.AgenticaPlanner/Agentica.TurtleQuest.AgenticaPlanner.csproj"
-$modDir = Join-Path $root "mod/agentica-turtlequest-neoforge"
+$bridgeProject = Join-Path $root "bridge/TurtleQuest.Bridge/TurtleQuest.Bridge.csproj"
+$plannerProject = Join-Path $root "planner/TurtleQuest.AgenticaPlanner/TurtleQuest.AgenticaPlanner.csproj"
+$modDir = Join-Path $root "mod/turtlequest-neoforge"
 $logDir = Join-Path $root "run/logs"
 $bridgeOut = Join-Path $logDir "bridge.out.log"
 $bridgeErr = Join-Path $logDir "bridge.err.log"
@@ -23,7 +23,7 @@ function Set-DefaultEnv {
     }
 }
 
-$agenticaEnv = "C:\Users\Zythis\source\repos\Agentica\.env"
+$agenticaEnv = Join-Path (Split-Path -Parent $root) "Agentica/.env"
 if (Test-Path $agenticaEnv) {
     Set-DefaultEnv "TURTLEQUEST_LLM_ENV_FILE" $agenticaEnv
 }
@@ -32,10 +32,10 @@ Set-DefaultEnv "TURTLEQUEST_USE_PLANNER_FOR_MESSAGES" "true"
 Set-DefaultEnv "TURTLEQUEST_PLANNER_MODE" "agentica"
 Set-DefaultEnv "TURTLEQUEST_PLANNER_FALLBACK_MODE" "deterministic"
 Set-DefaultEnv "TURTLEQUEST_PLANNER_REPAIR_ATTEMPTS" "1"
-Set-DefaultEnv "AGENTICA_TURTLEQUEST_PLANNER_COMMAND" "dotnet"
-Set-DefaultEnv "AGENTICA_TURTLEQUEST_PLANNER_ARGS" "run --project `"$plannerProject`" --no-restore --"
-Set-DefaultEnv "AGENTICA_TURTLEQUEST_PLANNER_CWD" $root
-Set-DefaultEnv "AGENTICA_TURTLEQUEST_PLANNER_TIMEOUT_SECONDS" "240"
+Set-DefaultEnv "TURTLEQUEST_AGENTICA_PLANNER_COMMAND" "dotnet"
+Set-DefaultEnv "TURTLEQUEST_AGENTICA_PLANNER_ARGS" "run --project `"$plannerProject`" --no-restore --"
+Set-DefaultEnv "TURTLEQUEST_AGENTICA_PLANNER_CWD" $root
+Set-DefaultEnv "TURTLEQUEST_AGENTICA_PLANNER_TIMEOUT_SECONDS" "240"
 Set-DefaultEnv "TURTLEQUEST_PLANNER_REQUEST_TIMEOUT_SECONDS" "240"
 Set-DefaultEnv "TURTLEQUEST_BRIDGE_REQUEST_TIMEOUT_SECONDS" "15"
 Set-DefaultEnv "TURTLEQUEST_AUTO_REPLAN_ON_BLOCKED" "true"
@@ -43,7 +43,7 @@ Set-DefaultEnv "TURTLEQUEST_RUNTIME_REPLAN_MODE" "agentica"
 Set-DefaultEnv "TURTLEQUEST_RUNTIME_REPLAN_ATTEMPTS" "1"
 
 Write-Host "Starting TurtleQuest bridge at http://127.0.0.1:57421"
-Write-Host "Planner mode: $env:TURTLEQUEST_PLANNER_MODE via $env:AGENTICA_TURTLEQUEST_PLANNER_COMMAND"
+Write-Host "Planner mode: $env:TURTLEQUEST_PLANNER_MODE via $env:TURTLEQUEST_AGENTICA_PLANNER_COMMAND"
 $bridge = Start-Process `
     -FilePath "dotnet" `
     -ArgumentList @("run", "--project", $bridgeProject) `

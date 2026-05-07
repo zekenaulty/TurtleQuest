@@ -9,7 +9,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$agenticaEnv = "C:\Users\Zythis\source\repos\Agentica\.env"
+$root = Split-Path -Parent $PSScriptRoot
+$agenticaEnv = Join-Path (Split-Path -Parent $root) "Agentica/.env"
 if ([string]::IsNullOrWhiteSpace($env:TURTLEQUEST_LLM_ENV_FILE) -and (Test-Path $agenticaEnv)) {
     $env:TURTLEQUEST_LLM_ENV_FILE = $agenticaEnv
 }
@@ -26,10 +27,10 @@ if (-not [string]::IsNullOrWhiteSpace($Model)) {
     $args = "$args -Model `"$Model`""
 }
 
-$env:AGENTICA_TURTLEQUEST_PLANNER_COMMAND = "powershell"
-$env:AGENTICA_TURTLEQUEST_PLANNER_ARGS = $args
-$env:AGENTICA_TURTLEQUEST_PLANNER_CWD = Split-Path -Parent $PSScriptRoot
-$env:AGENTICA_TURTLEQUEST_PLANNER_TIMEOUT_SECONDS = "180"
+$env:TURTLEQUEST_AGENTICA_PLANNER_COMMAND = "powershell"
+$env:TURTLEQUEST_AGENTICA_PLANNER_ARGS = $args
+$env:TURTLEQUEST_AGENTICA_PLANNER_CWD = Split-Path -Parent $PSScriptRoot
+$env:TURTLEQUEST_AGENTICA_PLANNER_TIMEOUT_SECONDS = "180"
 
 $smokeArgs = @{
     RepairAttempts = $RepairAttempts

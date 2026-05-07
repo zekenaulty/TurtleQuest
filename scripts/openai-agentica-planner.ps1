@@ -58,7 +58,8 @@ function Import-DotEnvFile($Path) {
 }
 
 if ([string]::IsNullOrWhiteSpace($EnvFile)) {
-    $adjacentAgenticaEnv = "C:\Users\Zythis\source\repos\Agentica\.env"
+    $repoRoot = Split-Path -Parent $PSScriptRoot
+    $adjacentAgenticaEnv = Join-Path (Split-Path -Parent $repoRoot) "Agentica/.env"
     if (Test-Path $adjacentAgenticaEnv) {
         $EnvFile = $adjacentAgenticaEnv
     }

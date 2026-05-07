@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
-$modDir = Join-Path $root "mod/agentica-turtlequest-neoforge"
+$modDir = Join-Path $root "mod/turtlequest-neoforge"
 $gradleVersion = "8.14.3"
 $downloadUrl = "https://services.gradle.org/distributions/gradle-$gradleVersion-bin.zip"
 $toolsDir = Join-Path $root ".tools"

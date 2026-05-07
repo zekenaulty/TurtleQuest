@@ -9,21 +9,21 @@ param(
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
-$agenticaEnv = "C:\Users\Zythis\source\repos\Agentica\.env"
+$agenticaEnv = Join-Path (Split-Path -Parent $root) "Agentica/.env"
 if ([string]::IsNullOrWhiteSpace($env:TURTLEQUEST_LLM_ENV_FILE) -and (Test-Path $agenticaEnv)) {
     $env:TURTLEQUEST_LLM_ENV_FILE = $agenticaEnv
 }
 
-$plannerProject = Join-Path $root "planner/Agentica.TurtleQuest.AgenticaPlanner/Agentica.TurtleQuest.AgenticaPlanner.csproj"
+$plannerProject = Join-Path $root "planner/TurtleQuest.AgenticaPlanner/TurtleQuest.AgenticaPlanner.csproj"
 $plannerArgs = "run --project `"$plannerProject`" --no-restore --"
 if (-not [string]::IsNullOrWhiteSpace($Model)) {
     $plannerArgs = "$plannerArgs --model `"$Model`""
 }
 
-$env:AGENTICA_TURTLEQUEST_PLANNER_COMMAND = "dotnet"
-$env:AGENTICA_TURTLEQUEST_PLANNER_ARGS = $plannerArgs
-$env:AGENTICA_TURTLEQUEST_PLANNER_CWD = $root
-$env:AGENTICA_TURTLEQUEST_PLANNER_TIMEOUT_SECONDS = "240"
+$env:TURTLEQUEST_AGENTICA_PLANNER_COMMAND = "dotnet"
+$env:TURTLEQUEST_AGENTICA_PLANNER_ARGS = $plannerArgs
+$env:TURTLEQUEST_AGENTICA_PLANNER_CWD = $root
+$env:TURTLEQUEST_AGENTICA_PLANNER_TIMEOUT_SECONDS = "240"
 
 $smokeArgs = @{
     RepairAttempts = $RepairAttempts

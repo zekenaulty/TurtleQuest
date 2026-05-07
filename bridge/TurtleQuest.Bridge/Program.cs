@@ -13,12 +13,12 @@ var app = builder.Build();
 var runs = new ConcurrentDictionary<string, TurtleRunState>();
 var sessions = new ConcurrentDictionary<string, TurtleQuestSession>();
 var snapshots = new ConcurrentDictionary<string, WorldFragmentSnapshot>();
-var routeMemory = new TurtleRouteMemory();
+var routeMemory = TurtleRouteMemory.Load(Path.Combine("run", "data", "routes.json"));
 var behaviorCatalog = TurtleBehaviorCatalog.Load();
 var boardCatalog = TurtleQuestBoardCatalog.Load();
 var cookbook = TurtleQuestCookbook.Load();
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "Agentica.TurtleQuest.Bridge" }));
+app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "TurtleQuest.Bridge" }));
 
 app.MapGet("/behaviors", () => Results.Ok(behaviorCatalog.Snapshot()));
 
@@ -677,7 +677,7 @@ public static class TurtleQuestBridgeConfiguration
             yield return Path.Combine(current.FullName, ".env");
             yield return Path.Combine(current.FullName, ".env.local");
 
-            if (File.Exists(Path.Combine(current.FullName, "Agentica.TurtleQuest.slnx")) ||
+            if (File.Exists(Path.Combine(current.FullName, "TurtleQuest.slnx")) ||
                 Directory.Exists(Path.Combine(current.FullName, "behaviors")))
             {
                 yield break;
@@ -909,16 +909,70 @@ public sealed record TurtleRouteSegmentRecord(
     DateTimeOffset ObservedAt,
     string SourceRunId);
 
+public sealed record TurtleRouteMemorySnapshot(
+    IReadOnlyList<TurtleWaypointRecord> Waypoints,
+    IReadOnlyList<TurtleRouteSegmentRecord> Routes);
+
 public sealed class TurtleRouteMemory
 {
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true,
+        PropertyNameCaseInsensitive = true
+    };
+
     private readonly ConcurrentDictionary<string, TurtleWaypointRecord> _waypoints = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, TurtleRouteSegmentRecord> _routes = new(StringComparer.Ordinal);
+    private readonly string _path;
 
-    public object Snapshot() => new
+    private TurtleRouteMemory(string path)
     {
-        Waypoints = _waypoints.Values.OrderBy(item => item.WaypointId, StringComparer.Ordinal).ToArray(),
-        Routes = _routes.Values.OrderBy(item => item.RouteId, StringComparer.Ordinal).ToArray()
-    };
+        _path = path;
+    }
+
+    public static TurtleRouteMemory Load(string path)
+    {
+        var memory = new TurtleRouteMemory(path);
+        if (!File.Exists(path))
+        {
+            return memory;
+        }
+
+        try
+        {
+            var persisted = JsonSerializer.Deserialize<TurtleRouteMemorySnapshot>(
+                File.ReadAllText(path),
+                JsonOptions);
+            if (persisted is null)
+            {
+                return memory;
+            }
+
+            foreach (var waypoint in persisted.Waypoints)
+            {
+                memory._waypoints[waypoint.WaypointId] = waypoint;
+            }
+
+            foreach (var route in persisted.Routes)
+            {
+                memory._routes[route.RouteId] = route;
+            }
+        }
+        catch (Exception exception)
+        {
+            TurtleQuestTrace.WritePlanner("route_memory.load_failed", new
+            {
+                Path = path,
+                exception.Message
+            });
+        }
+
+        return memory;
+    }
+
+    public TurtleRouteMemorySnapshot Snapshot() => new(
+        _waypoints.Values.OrderBy(item => item.WaypointId, StringComparer.Ordinal).ToArray(),
+        _routes.Values.OrderBy(item => item.RouteId, StringComparer.Ordinal).ToArray());
 
     public void Observe(TurtleRunState run, TurtleCommandReceipt receipt)
     {
@@ -927,19 +981,21 @@ public sealed class TurtleRouteMemory
             return;
         }
 
-        if (receipt.Action == "markWaypoint")
+        if (receipt.Action is "markWaypoint" or "placeStorage")
         {
             var waypointId = ExtractToken(receipt.Message, "waypointId") ??
                 ExtractToken(receipt.Message, "name") ??
                 $"waypoint-{Guid.NewGuid():N}";
+            var position = ExtractPosition(receipt.Message, "storagePosition") ?? receipt.Position;
             _waypoints[waypointId] = new TurtleWaypointRecord(
                 waypointId,
                 receipt.TurtleId,
                 run.Request.WorldId,
-                receipt.Position,
+                position,
                 receipt.Orientation,
                 receipt.ObservedAt,
                 receipt.RunId);
+            Save();
             return;
         }
 
@@ -969,6 +1025,29 @@ public sealed class TurtleRouteMemory
                 ExtractToken(receipt.Message, "clearance"),
                 receipt.ObservedAt,
                 receipt.RunId);
+            Save();
+        }
+    }
+
+    private void Save()
+    {
+        try
+        {
+            var directory = Path.GetDirectoryName(_path);
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            File.WriteAllText(_path, JsonSerializer.Serialize(Snapshot(), JsonOptions));
+        }
+        catch (Exception exception)
+        {
+            TurtleQuestTrace.WritePlanner("route_memory.save_failed", new
+            {
+                Path = _path,
+                exception.Message
+            });
         }
     }
 
@@ -1556,6 +1635,51 @@ public sealed class TurtleRunState
                 case "markWaypoint":
                     var waypointName = Convert.ToString(command.Arguments.TryGetValue("name", out var wp) ? wp : "waypoint", CultureInfo.InvariantCulture) ?? "waypoint";
                     Receipts.Add(Receipt(command, true, position, orientation, $"Marked waypointId={waypointName}; name={waypointName}."));
+                    break;
+                case "returnToPosition":
+                    position = new Position(
+                        ArgumentInt(command.Arguments, "x", position.X),
+                        ArgumentInt(command.Arguments, "y", position.Y),
+                        ArgumentInt(command.Arguments, "z", position.Z));
+                    Receipts.Add(Receipt(command, true, position, orientation, $"Simulated returnToPosition target={position.X},{position.Y},{position.Z}."));
+                    break;
+                case "placeStorage":
+                    var storageName = Convert.ToString(command.Arguments.TryGetValue("waypointName", out var storageWaypoint) ? storageWaypoint : "home_storage", CultureInfo.InvariantCulture) ?? "home_storage";
+                    var storagePosition = position.Step(orientation);
+                    placed++;
+                    Receipts.Add(Receipt(command, true, position, orientation, $"Placed storage waypointId={storageName}; name={storageName}; storageKind={command.Arguments.GetValueOrDefault("storageKind", "barrel")}; storagePosition={storagePosition.X},{storagePosition.Y},{storagePosition.Z}; block=minecraft:barrel.", inventoryDelta: new Dictionary<string, int>
+                    {
+                        ["minecraft:barrel"] = -1
+                    }));
+                    break;
+                case "depositInventory":
+                    Receipts.Add(Receipt(command, true, position, orientation, "Deposited inventory slots=3; direction=forward.", inventoryDelta: new Dictionary<string, int>
+                    {
+                        ["minecraft:cobblestone"] = -64,
+                        ["minecraft:dirt"] = -32
+                    }));
+                    break;
+                case "drop":
+                case "dropUp":
+                case "dropDown":
+                    Receipts.Add(Receipt(command, true, position, orientation, $"Simulated {command.Action}.", inventoryDelta: new Dictionary<string, int>
+                    {
+                        ["minecraft:cobblestone"] = -1 * ArgumentInt(command.Arguments, "count", 64)
+                    }));
+                    break;
+                case "suck":
+                case "suckUp":
+                case "suckDown":
+                    Receipts.Add(Receipt(command, true, position, orientation, $"Simulated {command.Action}.", inventoryDelta: new Dictionary<string, int>
+                    {
+                        ["minecraft:cobblestone"] = ArgumentInt(command.Arguments, "count", 64)
+                    }));
+                    break;
+                case "craft":
+                case "detect":
+                case "detectUp":
+                case "detectDown":
+                    Receipts.Add(Receipt(command, true, position, orientation, $"Simulated {command.Action}."));
                     break;
                 case "tunnelLine":
                     var tunnelLength = ArgumentInt(command.Arguments, "length", 6);
@@ -2261,13 +2385,13 @@ public static class TurtlePlanner
             List<TurtlePlannerRepairAttempt> repairs,
             int repairAttempts)
         {
-            var command = Environment.GetEnvironmentVariable("AGENTICA_TURTLEQUEST_PLANNER_COMMAND");
+            var command = ReadPlannerEnvironment("COMMAND");
             if (string.IsNullOrWhiteSpace(command))
             {
                 return BlockedAgenticaPlan(
                     request,
                     behavior,
-                    "Agentica subprocess planner is not configured. Set AGENTICA_TURTLEQUEST_PLANNER_COMMAND to a command that reads planner/context JSON from stdin and returns TurtleCompiledPlan JSON on stdout.");
+                    "Agentica subprocess planner is not configured. Set TURTLEQUEST_AGENTICA_PLANNER_COMMAND to a command that reads planner/context JSON from stdin and returns TurtleCompiledPlan JSON on stdout.");
             }
 
             TurtleCompiledPlan? lastPlan = null;
@@ -2319,12 +2443,12 @@ public static class TurtlePlanner
             List<TurtlePlannerRepairAttempt> repairs,
             int repairAttempts)
         {
-            var command = Environment.GetEnvironmentVariable("AGENTICA_TURTLEQUEST_PLANNER_COMMAND");
+            var command = ReadPlannerEnvironment("COMMAND");
             if (string.IsNullOrWhiteSpace(command))
             {
                 return BlockedRuntimePlan(
                     context,
-                    "Agentica subprocess planner is not configured. Set AGENTICA_TURTLEQUEST_PLANNER_COMMAND to a command that reads runtime replan JSON from stdin and returns TurtleCompiledPlan JSON on stdout.");
+                    "Agentica subprocess planner is not configured. Set TURTLEQUEST_AGENTICA_PLANNER_COMMAND to a command that reads runtime replan JSON from stdin and returns TurtleCompiledPlan JSON on stdout.");
             }
 
             TurtleCompiledPlan? lastPlan = null;
@@ -2375,7 +2499,7 @@ public static class TurtlePlanner
             string command,
             object request)
         {
-            var timeoutSecondsText = Environment.GetEnvironmentVariable("AGENTICA_TURTLEQUEST_PLANNER_TIMEOUT_SECONDS");
+            var timeoutSecondsText = ReadPlannerEnvironment("TIMEOUT_SECONDS");
             var timeoutSeconds = int.TryParse(timeoutSecondsText, out var parsedTimeout) && parsedTimeout > 0
                 ? parsedTimeout
                 : 120;
@@ -2384,8 +2508,8 @@ public static class TurtlePlanner
             var startInfo = new ProcessStartInfo
             {
                 FileName = command,
-                Arguments = Environment.GetEnvironmentVariable("AGENTICA_TURTLEQUEST_PLANNER_ARGS") ?? "",
-                WorkingDirectory = Environment.GetEnvironmentVariable("AGENTICA_TURTLEQUEST_PLANNER_CWD") ?? Environment.CurrentDirectory,
+                Arguments = ReadPlannerEnvironment("ARGS") ?? "",
+                WorkingDirectory = ReadPlannerEnvironment("CWD") ?? Environment.CurrentDirectory,
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -2482,6 +2606,9 @@ public static class TurtlePlanner
             string Stdout,
             string Stderr,
             string? Error);
+
+        private static string? ReadPlannerEnvironment(string suffix) =>
+            Environment.GetEnvironmentVariable($"TURTLEQUEST_AGENTICA_PLANNER_{suffix}");
     }
 }
 
@@ -2492,6 +2619,9 @@ public static class TurtleBehaviorIds
     public const string TunnelLine = "turtlequest.tunnel_line";
     public const string BranchTunnel = "turtlequest.branch_tunnel";
     public const string BranchMinePattern = "turtlequest.branch_mine_pattern";
+    public const string BootstrapHomeStorage = "turtlequest.bootstrap_home_storage";
+    public const string DepositInventory = "turtlequest.deposit_inventory";
+    public const string ReturnToWaypoint = "turtlequest.return_to_waypoint";
     public const string ExcavateRectangularPit = "turtlequest.excavate_rectangular_pit";
     public const string BuildColumn = "turtlequest.build_column";
     public const string FindTree = "turtlequest.find_tree";
@@ -2628,7 +2758,7 @@ public static class TurtleQuestPaths
         while (current is not null)
         {
             if (Directory.Exists(Path.Combine(current.FullName, "behaviors")) ||
-                File.Exists(Path.Combine(current.FullName, "Agentica.TurtleQuest.slnx")))
+                File.Exists(Path.Combine(current.FullName, "TurtleQuest.slnx")))
             {
                 return current.FullName;
             }
@@ -2691,6 +2821,7 @@ public static class TurtlePlanCompiler
         "moveTowardRelative",
         "recoverToGround",
         "markWaypoint",
+        "returnToPosition",
         "tunnelLine",
         "branchTunnel",
         "branchMinePattern",
@@ -2704,9 +2835,21 @@ public static class TurtlePlanCompiler
         "place",
         "placeUp",
         "placeDown",
+        "placeStorage",
         "selectSlot",
         "getInventory",
         "discardJunk",
+        "drop",
+        "dropUp",
+        "dropDown",
+        "suck",
+        "suckUp",
+        "suckDown",
+        "craft",
+        "detect",
+        "detectUp",
+        "detectDown",
+        "depositInventory",
         "scanNearby",
         "returnHome",
         "emitStatus",
@@ -2724,6 +2867,8 @@ public static class TurtlePlanCompiler
             or TurtleBehaviorIds.TunnelLine
             or TurtleBehaviorIds.BranchTunnel
             or TurtleBehaviorIds.BranchMinePattern
+            or TurtleBehaviorIds.BootstrapHomeStorage
+            or TurtleBehaviorIds.DepositInventory
             or TurtleBehaviorIds.BuildColumn
             or TurtleBehaviorIds.FindTree
             or TurtleBehaviorIds.HarvestTree
@@ -2788,6 +2933,14 @@ public static class TurtlePlanCompiler
         else if (plan.BehaviorId == TurtleBehaviorIds.BranchMinePattern)
         {
             ValidateSingleHostPrimitive(plan, "branchMinePattern", errors);
+        }
+        else if (plan.BehaviorId == TurtleBehaviorIds.BootstrapHomeStorage)
+        {
+            ValidateSingleHostPrimitive(plan, "placeStorage", errors);
+        }
+        else if (plan.BehaviorId == TurtleBehaviorIds.DepositInventory)
+        {
+            ValidateSingleHostPrimitive(plan, "depositInventory", errors);
         }
 
         return new TurtleCompiledPlanValidation(
@@ -3135,6 +3288,16 @@ public static class TurtlePlanCompiler
             return CompileBranchMinePattern(behavior);
         }
 
+        if (behavior.BehaviorId == TurtleBehaviorIds.BootstrapHomeStorage)
+        {
+            return CompileBootstrapHomeStorage(behavior);
+        }
+
+        if (behavior.BehaviorId == TurtleBehaviorIds.DepositInventory)
+        {
+            return CompileDepositInventory(behavior);
+        }
+
         if (behaviorCatalog.TryExpand("plan-preview", behavior, Command, out var catalogCommands))
         {
             var steps = catalogCommands
@@ -3464,6 +3627,50 @@ public static class TurtlePlanCompiler
             new("getInventory", new Dictionary<string, object?>()),
             new("emitStatus", new Dictionary<string, object?> { ["stage"] = "branch_mine_completed", ["behaviorId"] = behavior.BehaviorId }),
             new("completeObjective", new Dictionary<string, object?> { ["artifactKind"] = "turtlequest.objective_completed", ["stage"] = "branch_mine_completed" })
+        };
+
+        return Plan("compiled_behavior", behavior.BehaviorId, "deterministic_baseline", behavior.Arguments, steps, behavior.CommandBudget);
+    }
+
+    private static TurtleCompiledPlan CompileBootstrapHomeStorage(TurtleBehavior behavior)
+    {
+        var storageKind = StringArgument(behavior, "storageKind", "barrel");
+        var waypointName = StringArgument(behavior, "waypointName", "home_storage");
+        var placement = StringArgument(behavior, "placement", "front");
+        var steps = new List<TurtleCompiledPlanStep>
+        {
+            new("startBehavior", new Dictionary<string, object?> { ["behaviorId"] = behavior.BehaviorId, ["arguments"] = behavior.Arguments }),
+            new("emitStatus", new Dictionary<string, object?> { ["stage"] = "storage_preflight", ["behaviorId"] = behavior.BehaviorId }),
+            new("getInventory", new Dictionary<string, object?>()),
+            new("placeStorage", new Dictionary<string, object?>
+            {
+                ["storageKind"] = storageKind,
+                ["waypointName"] = waypointName,
+                ["placement"] = placement
+            }),
+            new("emitStatus", new Dictionary<string, object?> { ["stage"] = "home_storage_recorded", ["behaviorId"] = behavior.BehaviorId, ["waypointName"] = waypointName }),
+            new("completeObjective", new Dictionary<string, object?> { ["artifactKind"] = "turtlequest.objective_completed", ["stage"] = "home_storage_ready" })
+        };
+
+        return Plan("compiled_behavior", behavior.BehaviorId, "deterministic_baseline", behavior.Arguments, steps, behavior.CommandBudget);
+    }
+
+    private static TurtleCompiledPlan CompileDepositInventory(TurtleBehavior behavior)
+    {
+        var direction = StringArgument(behavior, "direction", "front");
+        var steps = new List<TurtleCompiledPlanStep>
+        {
+            new("startBehavior", new Dictionary<string, object?> { ["behaviorId"] = behavior.BehaviorId, ["arguments"] = behavior.Arguments }),
+            new("emitStatus", new Dictionary<string, object?> { ["stage"] = "deposit_preflight", ["behaviorId"] = behavior.BehaviorId }),
+            new("getInventory", new Dictionary<string, object?>()),
+            new("depositInventory", new Dictionary<string, object?>
+            {
+                ["direction"] = direction,
+                ["keepSelected"] = BoolArgument(behavior, "keepSelected", true)
+            }),
+            new("getInventory", new Dictionary<string, object?>()),
+            new("emitStatus", new Dictionary<string, object?> { ["stage"] = "deposit_completed", ["behaviorId"] = behavior.BehaviorId }),
+            new("completeObjective", new Dictionary<string, object?> { ["artifactKind"] = "turtlequest.objective_completed", ["stage"] = "deposit_completed" })
         };
 
         return Plan("compiled_behavior", behavior.BehaviorId, "deterministic_baseline", behavior.Arguments, steps, behavior.CommandBudget);
@@ -3992,6 +4199,48 @@ public static partial class TurtleBehaviorMatcher
                     ["requiresLlmPlan"] = true
                 },
                 CommandBudget: 512);
+        }
+
+        if ((normalized.Contains("storage", StringComparison.Ordinal) ||
+             normalized.Contains("barrel", StringComparison.Ordinal) ||
+             normalized.Contains("chest", StringComparison.Ordinal)) &&
+            (normalized.Contains("create", StringComparison.Ordinal) ||
+             normalized.Contains("place", StringComparison.Ordinal) ||
+             normalized.Contains("bootstrap", StringComparison.Ordinal) ||
+             normalized.Contains("home", StringComparison.Ordinal) ||
+             normalized.Contains("record", StringComparison.Ordinal)))
+        {
+            return new TurtleBehavior(
+                $"tqb-{Guid.NewGuid():N}",
+                TurtleBehaviorIds.BootstrapHomeStorage,
+                new Dictionary<string, object?>
+                {
+                    ["originalMessage"] = message,
+                    ["missionClass"] = "storage_upkeep",
+                    ["requirementId"] = "home_storage",
+                    ["storageKind"] = normalized.Contains("chest", StringComparison.Ordinal) ? "chest" : "barrel",
+                    ["waypointName"] = "home_storage",
+                    ["placement"] = normalized.Contains("below", StringComparison.Ordinal) ? "down" : "front",
+                    ["resumeRecommended"] = normalized.Contains("then", StringComparison.Ordinal)
+                },
+                CommandBudget: 32);
+        }
+
+        if (normalized.Contains("deposit", StringComparison.Ordinal) ||
+            normalized.Contains("drop off", StringComparison.Ordinal) ||
+            normalized.Contains("unload", StringComparison.Ordinal))
+        {
+            return new TurtleBehavior(
+                $"tqb-{Guid.NewGuid():N}",
+                TurtleBehaviorIds.DepositInventory,
+                new Dictionary<string, object?>
+                {
+                    ["originalMessage"] = message,
+                    ["missionClass"] = "storage_upkeep",
+                    ["direction"] = normalized.Contains("below", StringComparison.Ordinal) ? "down" : "front",
+                    ["keepSelected"] = true
+                },
+                CommandBudget: 48);
         }
 
         if (normalized.Contains("column", StringComparison.Ordinal) ||

@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/bridge/">
+    <Project Path="bridge/TurtleQuest.Bridge/TurtleQuest.Bridge.csproj" />
+  </Folder>
+  <Folder Name="/planner/">
+    <Project Path="planner/TurtleQuest.AgenticaPlanner/TurtleQuest.AgenticaPlanner.csproj" />
+  </Folder>
+</Solution>

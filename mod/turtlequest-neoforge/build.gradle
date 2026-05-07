@@ -39,7 +39,7 @@ neoForge {
     }
 
     mods {
-        agentica_turtlequest {
+        turtlequest {
             sourceSet sourceSets.main
         }
     }

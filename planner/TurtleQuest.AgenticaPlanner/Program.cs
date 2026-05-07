@@ -168,7 +168,7 @@ try
 }
 catch (Exception exception)
 {
-    Console.Error.WriteLine($"Agentica TurtleQuest planner failed: {exception.Message}");
+    Console.Error.WriteLine($"TurtleQuest planner failed: {exception.Message}");
     return 1;
 }
 
@@ -243,6 +243,8 @@ static string[] BehaviorSpecificRules(string? behaviorId, bool isRuntimeReplan) 
             "Do not preserve behaviorId=turtlequest.open_goal in the final plan. The final plan behaviorId must be the selected executable behavior.",
             "Extract useful arguments from natural language, including counts such as requested tree count, dimensions, depth, height, radius, and return-home intent.",
             "If the request asks to recover, rescue, descend, or unstick a turtle, prefer turtlequest.behavior.recover_turtle.",
+            "If the request asks to create, place, bootstrap, or record home storage, prefer turtlequest.behavior.bootstrap_home_storage.",
+            "If the request asks to deposit, unload, or drop off inventory into storage, prefer turtlequest.behavior.deposit_inventory.",
             "If the request asks to gather, collect, fetch, or obtain wood/logs/trees, prefer turtlequest.behavior.harvest_tree and pass targetCount when the user gives a number.",
             "If the request asks for branch mining, side branches, or repeated mining branches, prefer turtlequest.behavior.branch_mine_pattern.",
             "If the request asks to dig, mine, or make a forward tunnel or mineshaft, prefer turtlequest.behavior.tunnel_line and pass length, height, and returnHome."
@@ -259,6 +261,19 @@ static string[] BehaviorSpecificRules(string? behaviorId, bool isRuntimeReplan) 
             "Pass mainLength, branchLength, branchCount, spacing, height, sidePattern, mainRouteId, and returnHome.",
             "Include getInventory before and after so inventory pressure and mined material deltas are visible.",
             "Do not emit deposit_inventory yet; storage deposit remains a later tool unless the user explicitly asks to stop when inventory pressure appears."
+        ],
+        "turtlequest.bootstrap_home_storage" =>
+        [
+            "For bootstrap_home_storage, inspect inventory and use placeStorage once.",
+            "Pass storageKind, waypointName=home_storage, and placement.",
+            "This slice can place a barrel/chest already in inventory and record a storage waypoint; crafting missing storage is a later skill.",
+            "Do not claim the original larger workflow is complete just because storage was created; emit home_storage_ready as the requirement-clearing outcome."
+        ],
+        "turtlequest.deposit_inventory" =>
+        [
+            "For deposit_inventory, use getInventory, depositInventory, then getInventory.",
+            "Assume storage is adjacent in the requested direction unless routeMemory indicates a future return_to_waypoint step is needed.",
+            "Do not deposit tools or storage blocks; the executor protects obvious tool/storage items."
         ],
         "turtlequest.tunnel_line" =>
         [
@@ -385,6 +400,20 @@ static IReadOnlyList<object> BehaviorToolSurface() =>
     },
     new
     {
+        toolId = TurtleQuestBehaviorTool.ToolIdBootstrapHomeStorage,
+        behaviorId = "turtlequest.bootstrap_home_storage",
+        purpose = "Place a chest/barrel already in inventory, record it as home storage, and clear the home_storage requirement.",
+        parameters = new { storageKind = "barrel|chest, default barrel", waypointName = "default home_storage", placement = "front|up|down, default front" }
+    },
+    new
+    {
+        toolId = TurtleQuestBehaviorTool.ToolIdDepositInventory,
+        behaviorId = "turtlequest.deposit_inventory",
+        purpose = "Deposit non-protected inventory into adjacent storage and emit inventory deltas.",
+        parameters = new { direction = "front|up|down, default front", keepSelected = "bool, default true" }
+    },
+    new
+    {
         toolId = TurtleQuestBehaviorTool.ToolIdBuildColumn,
         behaviorId = "turtlequest.build_column",
         purpose = "Build a simple vertical column from turtle inventory."
@@ -411,8 +440,26 @@ static string? DefaultAgenticaEnvFile()
         return configured;
     }
 
-    var defaultPath = @"C:\Users\Zythis\source\repos\Agentica\.env";
+    var repoParent = Directory.GetParent(FindRepositoryRoot() ?? Environment.CurrentDirectory)?.FullName;
+    var defaultPath = repoParent is null ? null : Path.Combine(repoParent, "Agentica", ".env");
     return File.Exists(defaultPath) ? defaultPath : null;
+}
+
+static string? FindRepositoryRoot()
+{
+    var current = new DirectoryInfo(AppContext.BaseDirectory);
+    while (current is not null)
+    {
+        if (File.Exists(Path.Combine(current.FullName, "TurtleQuest.slnx")) ||
+            Directory.Exists(Path.Combine(current.FullName, "behaviors")))
+        {
+            return current.FullName;
+        }
+
+        current = current.Parent;
+    }
+
+    return null;
 }
 
 static void LoadEnvironmentFile(string? path)
@@ -583,8 +630,8 @@ public sealed class PlannerHostOutcomeReporter : IOutcomeReporter
         return new OutcomeReport(
             AgenticaIds.New("report"),
             artifact is null
-                ? $"Agentica TurtleQuest planner stopped with {status}."
-                : "Agentica TurtleQuest planner emitted a compiled plan.",
+                ? $"TurtleQuest planner stopped with {status}."
+                : "TurtleQuest planner emitted a compiled plan.",
             claims);
     }
 }
@@ -633,6 +680,16 @@ public static class TurtleQuestPlannerTools
                 TurtleQuestBehaviorTool.ToolIdBranchMinePattern,
                 "TurtleQuest Behavior Branch Mine Pattern",
                 "Expands a bounded branch mine pattern into host-owned main tunnel and side branch execution.",
+                behaviorTool),
+            TurtleQuestBehaviorTool.Registration(
+                TurtleQuestBehaviorTool.ToolIdBootstrapHomeStorage,
+                "TurtleQuest Behavior Bootstrap Home Storage",
+                "Expands storage bootstrap into inventory inspection, storage placement, and waypoint recording primitives.",
+                behaviorTool),
+            TurtleQuestBehaviorTool.Registration(
+                TurtleQuestBehaviorTool.ToolIdDepositInventory,
+                "TurtleQuest Behavior Deposit Inventory",
+                "Expands inventory deposit into adjacent storage with before/after inventory evidence.",
                 behaviorTool),
             TurtleQuestBehaviorTool.Registration(
                 TurtleQuestBehaviorTool.ToolIdBuildColumn,
@@ -819,6 +876,8 @@ public sealed class TurtleQuestBehaviorTool : ITool
     public const string ToolIdTunnelLine = "turtlequest.behavior.tunnel_line";
     public const string ToolIdBranchTunnel = "turtlequest.behavior.branch_tunnel";
     public const string ToolIdBranchMinePattern = "turtlequest.behavior.branch_mine_pattern";
+    public const string ToolIdBootstrapHomeStorage = "turtlequest.behavior.bootstrap_home_storage";
+    public const string ToolIdDepositInventory = "turtlequest.behavior.deposit_inventory";
     public const string ToolIdBuildColumn = "turtlequest.behavior.build_column";
     public const string ToolIdExcavatePit = "turtlequest.behavior.excavate_rectangular_pit";
     public const string ToolIdRecoverTurtle = "turtlequest.behavior.recover_turtle";
@@ -958,6 +1017,8 @@ public sealed class TurtleQuestBehaviorTool : ITool
             ToolIdTunnelLine => "turtlequest.tunnel_line",
             ToolIdBranchTunnel => "turtlequest.branch_tunnel",
             ToolIdBranchMinePattern => "turtlequest.branch_mine_pattern",
+            ToolIdBootstrapHomeStorage => "turtlequest.bootstrap_home_storage",
+            ToolIdDepositInventory => "turtlequest.deposit_inventory",
             ToolIdBuildColumn => "turtlequest.build_column",
             ToolIdExcavatePit => "turtlequest.excavate_rectangular_pit",
             ToolIdRecoverTurtle => "turtlequest.recover_turtle",
@@ -1003,6 +1064,8 @@ public sealed class TurtleQuestBehaviorTool : ITool
             "turtlequest.tunnel_line" => TunnelLineSteps(arguments),
             "turtlequest.branch_tunnel" => BranchTunnelSteps(arguments),
             "turtlequest.branch_mine_pattern" => BranchMinePatternSteps(arguments),
+            "turtlequest.bootstrap_home_storage" => BootstrapHomeStorageSteps(arguments),
+            "turtlequest.deposit_inventory" => DepositInventorySteps(arguments),
             "turtlequest.build_column" => BuildColumnSteps(arguments),
             "turtlequest.excavate_rectangular_pit" => ExcavatePitSteps(arguments),
             "turtlequest.recover_turtle" => RecoverTurtleSteps(arguments),
@@ -1135,6 +1198,38 @@ public sealed class TurtleQuestBehaviorTool : ITool
         ];
     }
 
+    private static IReadOnlyList<TurtleCompiledPlanStep> BootstrapHomeStorageSteps(IReadOnlyDictionary<string, object?> arguments)
+    {
+        var storageKind = StringArgument(arguments, "storageKind", "barrel");
+        var waypointName = StringArgument(arguments, "waypointName", "home_storage");
+        var placement = StringArgument(arguments, "placement", "front");
+        return
+        [
+            Step("startBehavior", ("behaviorId", "turtlequest.bootstrap_home_storage"), ("arguments", arguments)),
+            Step("emitStatus", ("stage", "storage_preflight"), ("behaviorId", "turtlequest.bootstrap_home_storage")),
+            Step("getInventory"),
+            Step("placeStorage", ("storageKind", storageKind), ("waypointName", waypointName), ("placement", placement)),
+            Step("emitStatus", ("stage", "home_storage_recorded"), ("behaviorId", "turtlequest.bootstrap_home_storage"), ("waypointName", waypointName)),
+            Step("completeObjective", ("artifactKind", "turtlequest.objective_completed"), ("stage", "home_storage_ready"))
+        ];
+    }
+
+    private static IReadOnlyList<TurtleCompiledPlanStep> DepositInventorySteps(IReadOnlyDictionary<string, object?> arguments)
+    {
+        var direction = StringArgument(arguments, "direction", "front");
+        var keepSelected = BoolArgument(arguments, "keepSelected", true);
+        return
+        [
+            Step("startBehavior", ("behaviorId", "turtlequest.deposit_inventory"), ("arguments", arguments)),
+            Step("emitStatus", ("stage", "deposit_preflight"), ("behaviorId", "turtlequest.deposit_inventory")),
+            Step("getInventory"),
+            Step("depositInventory", ("direction", direction), ("keepSelected", keepSelected)),
+            Step("getInventory"),
+            Step("emitStatus", ("stage", "deposit_completed"), ("behaviorId", "turtlequest.deposit_inventory")),
+            Step("completeObjective", ("artifactKind", "turtlequest.objective_completed"), ("stage", "deposit_completed"))
+        ];
+    }
+
     private static IReadOnlyList<TurtleCompiledPlanStep> BuildColumnSteps(IReadOnlyDictionary<string, object?> arguments)
     {
         var height = ClampArgument(arguments, "height", 5, 1, 16);
@@ -1244,6 +1339,20 @@ public sealed class TurtleQuestBehaviorTool : ITool
                 "Branch mining behavior.",
                 "Requires one branchMinePattern receipt with mainLength, branchCount, branchesCompleted, route ids, inventoryPressure, and return state.",
                 "Storage/deposit is not required in this first branch mining slice; inventory pressure should be emitted as evidence."
+            ],
+            "turtlequest.bootstrap_home_storage" =>
+            [
+                "Storage requirement behavior.",
+                "Requires getInventory and one placeStorage receipt.",
+                "Successful placeStorage records a home_storage waypoint in route memory.",
+                "This clears the home_storage requirement only; the original workflow should be resumed by a later Agentica step."
+            ],
+            "turtlequest.deposit_inventory" =>
+            [
+                "Storage upkeep behavior.",
+                "Requires inventory evidence before and after depositInventory.",
+                "Executor deposits non-protected stacks into adjacent storage and reports inventoryDelta.",
+                "If no storage is adjacent, the failed receipt should drive a replan toward return_to_waypoint or bootstrap_home_storage."
             ],
             "turtlequest.build_column" =>
             [

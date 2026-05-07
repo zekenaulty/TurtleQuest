@@ -8,7 +8,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
-$bridgeProject = Join-Path $root "bridge/Agentica.TurtleQuest.Bridge/Agentica.TurtleQuest.Bridge.csproj"
+$bridgeProject = Join-Path $root "bridge/TurtleQuest.Bridge/TurtleQuest.Bridge.csproj"
 $mockPlanner = Join-Path $PSScriptRoot "mock-agentica-planner.ps1"
 
 if ($UseMock) {
@@ -17,13 +17,13 @@ if ($UseMock) {
         $mockArgs = "$mockArgs -InvalidFirst"
     }
 
-    $env:AGENTICA_TURTLEQUEST_PLANNER_COMMAND = "powershell"
-    $env:AGENTICA_TURTLEQUEST_PLANNER_ARGS = $mockArgs
-    $env:AGENTICA_TURTLEQUEST_PLANNER_CWD = $root
+    $env:TURTLEQUEST_AGENTICA_PLANNER_COMMAND = "powershell"
+    $env:TURTLEQUEST_AGENTICA_PLANNER_ARGS = $mockArgs
+    $env:TURTLEQUEST_AGENTICA_PLANNER_CWD = $root
 }
 
-if ([string]::IsNullOrWhiteSpace($env:AGENTICA_TURTLEQUEST_PLANNER_COMMAND)) {
-    throw "AGENTICA_TURTLEQUEST_PLANNER_COMMAND is not configured. Pass -UseMock or configure the real Agentica planner command in the bridge environment."
+if ([string]::IsNullOrWhiteSpace($env:TURTLEQUEST_AGENTICA_PLANNER_COMMAND)) {
+    throw "TURTLEQUEST_AGENTICA_PLANNER_COMMAND is not configured. Pass -UseMock or configure the real Agentica planner command in the bridge environment."
 }
 
 function Wait-Bridge {

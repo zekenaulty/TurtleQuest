@@ -1,4 +1,4 @@
-package com.agentica.turtlequest;
+package com.turtlequest;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -33,6 +33,10 @@ import dan200.computercraft.shared.turtle.core.MoveDirection;
 import dan200.computercraft.shared.turtle.core.TurnDirection;
 import dan200.computercraft.shared.turtle.core.TurtleMoveCommand;
 import dan200.computercraft.shared.turtle.core.TurtlePlaceCommand;
+import dan200.computercraft.shared.turtle.core.TurtleCraftCommand;
+import dan200.computercraft.shared.turtle.core.TurtleDetectCommand;
+import dan200.computercraft.shared.turtle.core.TurtleDropCommand;
+import dan200.computercraft.shared.turtle.core.TurtleSuckCommand;
 import dan200.computercraft.shared.turtle.core.TurtleToolCommand;
 import dan200.computercraft.shared.turtle.core.TurtleTurnCommand;
 import net.minecraft.commands.CommandSourceStack;
@@ -56,12 +60,12 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Mod(AgenticaTurtleQuestMod.MOD_ID)
-public final class AgenticaTurtleQuestMod {
-    public static final String MOD_ID = "agentica_turtlequest";
-    private static final Logger LOGGER = LoggerFactory.getLogger(AgenticaTurtleQuestMod.class);
+@Mod(TurtleQuestMod.MOD_ID)
+public final class TurtleQuestMod {
+    public static final String MOD_ID = "turtlequest";
+    private static final Logger LOGGER = LoggerFactory.getLogger(TurtleQuestMod.class);
     private static final int TURTLE_SEARCH_RADIUS = 16;
-    private static final String KIT_GRANTED_TAG = "agentica_turtlequest.kit_granted";
+    private static final String KIT_GRANTED_TAG = "turtlequest.kit_granted";
     private static final HttpClient HTTP = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
@@ -90,7 +94,7 @@ public final class AgenticaTurtleQuestMod {
             "15"));
     private static final int PLANNER_REQUEST_TIMEOUT_SECONDS = Integer.parseInt(System.getenv().getOrDefault(
             "TURTLEQUEST_PLANNER_REQUEST_TIMEOUT_SECONDS",
-            System.getenv().getOrDefault("AGENTICA_TURTLEQUEST_PLANNER_TIMEOUT_SECONDS", "240")));
+            System.getenv().getOrDefault("TURTLEQUEST_AGENTICA_PLANNER_TIMEOUT_SECONDS", "240")));
     private static final boolean CHAT_PROGRESS_ENABLED = Boolean.parseBoolean(System.getenv().getOrDefault(
             "TURTLEQUEST_CHAT_PROGRESS_ENABLED",
             "true"));
@@ -117,10 +121,10 @@ public final class AgenticaTurtleQuestMod {
             "minecraft:basalt",
             "minecraft:blackstone");
 
-    public AgenticaTurtleQuestMod() {
-        NeoForge.EVENT_BUS.addListener(AgenticaTurtleQuestMod::registerCommands);
-        NeoForge.EVENT_BUS.addListener(AgenticaTurtleQuestMod::onPlayerLoggedIn);
-        LOGGER.info("Agentica TurtleQuest loaded. Bridge URL: {}", BRIDGE_URL);
+    public TurtleQuestMod() {
+        NeoForge.EVENT_BUS.addListener(TurtleQuestMod::registerCommands);
+        NeoForge.EVENT_BUS.addListener(TurtleQuestMod::onPlayerLoggedIn);
+        LOGGER.info("TurtleQuest loaded. Bridge URL: {}", BRIDGE_URL);
     }
 
     private static void registerCommands(RegisterCommandsEvent event) {
@@ -519,15 +523,28 @@ public final class AgenticaTurtleQuestMod {
             case "moveTowardRelative" -> moveTowardRelative(command, binding, turtle);
             case "recoverToGround" -> recoverToGround(command, binding, turtle);
             case "markWaypoint" -> markWaypoint(command, binding);
+            case "returnToPosition" -> returnToPosition(command, binding, turtle);
             case "tunnelLine" -> tunnelLine(command, binding, turtle);
             case "branchTunnel" -> branchTunnel(command, binding, turtle);
             case "branchMinePattern" -> branchMinePattern(command, binding, turtle);
             case "place" -> runPlace(command, binding, InteractDirection.FORWARD, "Placed block ahead.");
             case "placeUp" -> runPlace(command, binding, InteractDirection.UP, "Placed block above.");
             case "placeDown" -> runPlace(command, binding, InteractDirection.DOWN, "Placed block below.");
+            case "placeStorage" -> placeStorage(command, binding, turtle);
             case "selectSlot" -> selectSlot(command, binding, turtle);
             case "getInventory" -> getInventory(command, binding, turtle);
             case "discardJunk" -> discardJunk(command, binding, turtle);
+            case "drop" -> runDrop(command, binding, turtle, InteractDirection.FORWARD, "Dropped items ahead.");
+            case "dropUp" -> runDrop(command, binding, turtle, InteractDirection.UP, "Dropped items above.");
+            case "dropDown" -> runDrop(command, binding, turtle, InteractDirection.DOWN, "Dropped items below.");
+            case "suck" -> runSuck(command, binding, turtle, InteractDirection.FORWARD, "Collected items ahead.");
+            case "suckUp" -> runSuck(command, binding, turtle, InteractDirection.UP, "Collected items above.");
+            case "suckDown" -> runSuck(command, binding, turtle, InteractDirection.DOWN, "Collected items below.");
+            case "craft" -> runCraft(command, binding, turtle);
+            case "detect" -> runDetect(command, binding, InteractDirection.FORWARD, "Detected block ahead.");
+            case "detectUp" -> runDetect(command, binding, InteractDirection.UP, "Detected block above.");
+            case "detectDown" -> runDetect(command, binding, InteractDirection.DOWN, "Detected block below.");
+            case "depositInventory" -> depositInventory(command, binding, turtle);
             case "scanNearby" -> scanNearby(command, binding);
             case "returnHome" -> runReturnHome(command, binding, turtle);
             case "completeObjective" -> completeObjective(command, binding);
@@ -847,6 +864,153 @@ public final class AgenticaTurtleQuestMod {
         return receiptFromResult(command, binding, result, successMessage);
     }
 
+    private static TurtleReceipt runDrop(
+            TurtleCommand command,
+            TurtleBinding binding,
+            TurtleBlockEntity turtle,
+            InteractDirection direction,
+            String successMessage) {
+        var count = Math.max(1, Math.min(64, JsonFields.integer(command.rawJson(), "count").orElse(64)));
+        var before = inventorySummary(turtle);
+        var result = new TurtleDropCommand(direction, count).execute(turtle.getAccess());
+        binding.refreshFrom(turtle);
+        var after = inventorySummary(turtle);
+        return receiptFromResult(command, binding, result, successMessage, inventoryDelta(before, after));
+    }
+
+    private static TurtleReceipt runSuck(
+            TurtleCommand command,
+            TurtleBinding binding,
+            TurtleBlockEntity turtle,
+            InteractDirection direction,
+            String successMessage) {
+        var count = Math.max(1, Math.min(64, JsonFields.integer(command.rawJson(), "count").orElse(64)));
+        var before = inventorySummary(turtle);
+        var result = new TurtleSuckCommand(direction, count).execute(turtle.getAccess());
+        binding.refreshFrom(turtle);
+        var after = inventorySummary(turtle);
+        return receiptFromResult(command, binding, result, successMessage, inventoryDelta(before, after));
+    }
+
+    private static TurtleReceipt runCraft(TurtleCommand command, TurtleBinding binding, TurtleBlockEntity turtle) {
+        var count = Math.max(1, Math.min(64, JsonFields.integer(command.rawJson(), "count").orElse(1)));
+        var before = inventorySummary(turtle);
+        var result = new TurtleCraftCommand(count).execute(turtle.getAccess());
+        binding.refreshFrom(turtle);
+        var after = inventorySummary(turtle);
+        return receiptFromResult(command, binding, result, "Crafted item(s).", inventoryDelta(before, after));
+    }
+
+    private static TurtleReceipt runDetect(
+            TurtleCommand command,
+            TurtleBinding binding,
+            InteractDirection direction,
+            String successMessage) {
+        var block = switch (direction) {
+            case UP -> blockAt(binding, binding.pos().above());
+            case DOWN -> blockAt(binding, binding.pos().below());
+            default -> blockAhead(binding);
+        };
+        var blockEntity = binding.level().getBlockEntity(binding.pos());
+        if (!(blockEntity instanceof TurtleBlockEntity turtle)) {
+            return receipt(command, binding, false, block, "Bound turtle is no longer present.", List.of("turtle_missing"));
+        }
+
+        var result = new TurtleDetectCommand(direction).execute(turtle.getAccess());
+        binding.refreshFrom(turtle);
+        return receiptFromResult(command, binding, result, successMessage + " block=" + block + ".");
+    }
+
+    private static TurtleReceipt placeStorage(TurtleCommand command, TurtleBinding binding, TurtleBlockEntity turtle) {
+        var storageKind = JsonFields.string(command.rawJson(), "storageKind").orElse("barrel");
+        var waypointName = JsonFields.string(command.rawJson(), "waypointName").orElse("home_storage");
+        var placement = JsonFields.string(command.rawJson(), "placement").orElse("front");
+        var direction = interactDirection(placement);
+        var inventory = turtle.getAccess().getInventory();
+        var selectedSlotBefore = turtle.getAccess().getSelectedSlot();
+        var storageSlot = findStorageSlot(inventory, storageKind);
+        if (storageSlot < 0) {
+            return receipt(command, binding, false, blockAhead(binding), "No " + storageKind + " storage block found in turtle inventory.", List.of("storage_item_missing"));
+        }
+
+        var before = inventorySummary(turtle);
+        turtle.getAccess().setSelectedSlot(storageSlot);
+        var target = switch (direction) {
+            case UP -> binding.pos().above();
+            case DOWN -> binding.pos().below();
+            default -> binding.pos().relative(binding.facing());
+        };
+        var result = new TurtlePlaceCommand(direction, new Object[0]).execute(turtle.getAccess());
+        binding.refreshFrom(turtle);
+        turtle.getAccess().setSelectedSlot(selectedSlotBefore);
+        var after = inventorySummary(turtle);
+        if (result.isSuccess()) {
+            binding.placeCount++;
+        }
+
+        var storageBlock = blockAt(binding, target);
+        var message = result.isSuccess()
+                ? "Placed storage waypointId="
+                        + waypointName
+                        + "; name="
+                        + waypointName
+                        + "; storageKind="
+                        + storageKind
+                        + "; storagePosition="
+                        + target.getX()
+                        + ","
+                        + target.getY()
+                        + ","
+                        + target.getZ()
+                        + "; block="
+                        + storageBlock
+                        + "."
+                : "Storage placement failed for " + storageKind + ".";
+        return receiptFromResult(command, binding, result, message, inventoryDelta(before, after));
+    }
+
+    private static TurtleReceipt depositInventory(TurtleCommand command, TurtleBinding binding, TurtleBlockEntity turtle) {
+        var direction = interactDirection(JsonFields.string(command.rawJson(), "direction").orElse("front"));
+        var keepSelected = JsonFields.bool(command.rawJson(), "keepSelected").orElse(true);
+        var before = inventorySummary(turtle);
+        var inventory = turtle.getAccess().getInventory();
+        var selectedSlot = turtle.getAccess().getSelectedSlot();
+        var depositedSlots = 0;
+        TurtleCommandResult lastResult = TurtleCommandResult.success();
+
+        for (var slot = 0; slot < inventory.getContainerSize(); slot++) {
+            if (keepSelected && slot == selectedSlot) {
+                continue;
+            }
+
+            var stack = inventory.getItem(slot);
+            if (stack.isEmpty()) {
+                continue;
+            }
+
+            var itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+            if (isProtectedDepositItem(itemId)) {
+                continue;
+            }
+
+            turtle.getAccess().setSelectedSlot(slot);
+            lastResult = new TurtleDropCommand(direction, stack.getCount()).execute(turtle.getAccess());
+            binding.refreshFrom(turtle);
+            if (!lastResult.isSuccess()) {
+                turtle.getAccess().setSelectedSlot(selectedSlot);
+                var afterFailure = inventorySummary(turtle);
+                return receiptFromResult(command, binding, lastResult, "Deposit failed after " + depositedSlots + " slot(s).", inventoryDelta(before, afterFailure));
+            }
+
+            depositedSlots++;
+        }
+
+        turtle.getAccess().setSelectedSlot(selectedSlot);
+        var after = inventorySummary(turtle);
+        var message = "Deposited inventory slots=" + depositedSlots + "; direction=" + direction.name().toLowerCase() + ".";
+        return receipt(command, binding, true, blockAhead(binding), message, List.of(), inventoryDelta(before, after));
+    }
+
     private static TurtleReceipt selectSlot(TurtleCommand command, TurtleBinding binding, TurtleBlockEntity turtle) {
         var slot = JsonFields.integer(command.rawJson(), "slot").orElse(1);
         if (slot < 1 || slot > 16) {
@@ -935,6 +1099,42 @@ public final class AgenticaTurtleQuestMod {
                 + "; facing=" + binding.facing().getSerializedName()
                 + ".";
         return receipt(command, binding, true, blockAhead(binding), message, List.of());
+    }
+
+    private static TurtleReceipt returnToPosition(TurtleCommand command, TurtleBinding binding, TurtleBlockEntity turtle) {
+        var x = JsonFields.integer(command.rawJson(), "x");
+        var y = JsonFields.integer(command.rawJson(), "y");
+        var z = JsonFields.integer(command.rawJson(), "z");
+        if (x.isEmpty() || y.isEmpty() || z.isEmpty()) {
+            return receipt(command, binding, false, blockAhead(binding), "returnToPosition requires x, y, and z arguments.", List.of("target_position_missing"));
+        }
+
+        var budget = Math.max(1, Math.min(512, JsonFields.integer(command.rawJson(), "budget").orElse(128)));
+        var target = new BlockPos(x.get(), y.get(), z.get());
+        var start = binding.pos();
+        var result = returnToPosition(turtle, binding, target, budget);
+        var message = result.isSuccess()
+                ? "Returned to position target="
+                        + target.getX()
+                        + ","
+                        + target.getY()
+                        + ","
+                        + target.getZ()
+                        + "; start="
+                        + start.getX()
+                        + ","
+                        + start.getY()
+                        + ","
+                        + start.getZ()
+                        + "."
+                : "Return to position failed for target="
+                        + target.getX()
+                        + ","
+                        + target.getY()
+                        + ","
+                        + target.getZ()
+                        + ".";
+        return receiptFromResult(command, binding, result, message);
     }
 
     private static TurtleReceipt tunnelLine(TurtleCommand command, TurtleBinding binding, TurtleBlockEntity turtle) {
@@ -1303,7 +1503,33 @@ public final class AgenticaTurtleQuestMod {
             var current = binding.pos();
             trimCurrentBreadcrumb(binding, current);
             if (binding.path.isEmpty()) {
-                return TurtleCommandResult.failure("No breadcrumb path to target.");
+                TurtleCommandResult directResult;
+                if (target.getY() > current.getY()) {
+                    directResult = new TurtleMoveCommand(MoveDirection.UP).execute(turtle.getAccess());
+                } else if (target.getY() < current.getY()) {
+                    directResult = new TurtleMoveCommand(MoveDirection.DOWN).execute(turtle.getAccess());
+                } else {
+                    var direction = directStepDirection(current, target);
+                    if (direction.isEmpty()) {
+                        return TurtleCommandResult.failure("No direct step toward target.");
+                    }
+
+                    var turn = turnTo(turtle, binding, direction.get());
+                    if (!turn.isSuccess()) {
+                        return turn;
+                    }
+
+                    directResult = new TurtleMoveCommand(MoveDirection.FORWARD).execute(turtle.getAccess());
+                }
+
+                binding.refreshFrom(turtle);
+                if (!directResult.isSuccess()) {
+                    return directResult;
+                }
+
+                binding.returnMoves++;
+                attempts++;
+                continue;
             }
 
             var next = binding.path.remove(binding.path.size() - 1);
@@ -2141,10 +2367,17 @@ public final class AgenticaTurtleQuestMod {
             case "recoverToGround" -> progress(binding, "Recovering to safe ground.", true);
             case "tunnelLine" -> progress(binding, "Tunneling forward and tracking inventory pressure.", true);
             case "markWaypoint" -> progress(binding, "Marking route waypoint.", true);
+            case "returnToPosition" -> progress(binding, "Returning to a known position.", true);
             case "branchTunnel" -> progress(binding, "Digging side branch and returning to origin.", true);
             case "branchMinePattern" -> progress(binding, "Digging branch mine pattern.", true);
+            case "placeStorage" -> progress(binding, "Placing and recording home storage.", true);
+            case "depositInventory" -> progress(binding, "Depositing inventory into storage.", true);
             case "returnHome" -> progress(binding, "Returning by breadcrumbs.", true);
             case "discardJunk" -> progress(binding, "Clearing inventory pressure with default junk discard.", true);
+            case "drop", "dropUp", "dropDown" -> progress(binding, "Dropping selected inventory.", true);
+            case "suck", "suckUp", "suckDown" -> progress(binding, "Collecting inventory from adjacent block.", true);
+            case "craft" -> progress(binding, "Crafting from turtle inventory.", true);
+            case "detect", "detectUp", "detectDown" -> progress(binding, "Detecting adjacent block occupancy.", false);
             case "getInventory" -> progress(binding, "Checking inventory.", false);
             case "emitStatus" -> {
                 var stage = JsonFields.string(command.rawJson(), "stage").orElse("");
@@ -2399,6 +2632,67 @@ public final class AgenticaTurtleQuestMod {
     }
 
     private record DigTunnelResult(boolean success, int stepsCompleted, int blocksRemoved, String message, List<String> hazards) {
+    }
+
+    private static Optional<Direction> directStepDirection(BlockPos from, BlockPos to) {
+        var dx = to.getX() - from.getX();
+        var dz = to.getZ() - from.getZ();
+        if (Math.abs(dx) >= Math.abs(dz) && dx != 0) {
+            return Optional.of(dx > 0 ? Direction.EAST : Direction.WEST);
+        }
+
+        if (dz != 0) {
+            return Optional.of(dz > 0 ? Direction.SOUTH : Direction.NORTH);
+        }
+
+        return Optional.empty();
+    }
+
+    private static InteractDirection interactDirection(String value) {
+        return switch (value.toLowerCase()) {
+            case "up", "above" -> InteractDirection.UP;
+            case "down", "below" -> InteractDirection.DOWN;
+            default -> InteractDirection.FORWARD;
+        };
+    }
+
+    private static int findStorageSlot(net.minecraft.world.Container inventory, String storageKind) {
+        var preferred = storageKind.toLowerCase().contains("chest") ? "minecraft:chest" : "minecraft:barrel";
+        for (var slot = 0; slot < inventory.getContainerSize(); slot++) {
+            var stack = inventory.getItem(slot);
+            if (stack.isEmpty()) {
+                continue;
+            }
+
+            var itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+            if (preferred.equals(itemId)) {
+                return slot;
+            }
+        }
+
+        var fallback = storageKind.toLowerCase().contains("chest") ? "minecraft:barrel" : "minecraft:chest";
+        for (var slot = 0; slot < inventory.getContainerSize(); slot++) {
+            var stack = inventory.getItem(slot);
+            if (stack.isEmpty()) {
+                continue;
+            }
+
+            var itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+            if (fallback.equals(itemId)) {
+                return slot;
+            }
+        }
+
+        return -1;
+    }
+
+    private static boolean isProtectedDepositItem(String itemId) {
+        return itemId.contains("pickaxe")
+                || itemId.contains("axe")
+                || itemId.contains("shovel")
+                || itemId.contains("sword")
+                || itemId.contains("barrel")
+                || itemId.contains("chest");
     }
 
     private record TurtleCommand(String runId, String commandId, String action, String rawJson) {
