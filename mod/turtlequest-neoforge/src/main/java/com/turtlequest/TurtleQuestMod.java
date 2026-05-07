@@ -453,13 +453,19 @@ public final class TurtleQuestMod {
 
                     if (!receipt.success()) {
                         progress(binding, "Blocked during " + receipt.action() + ": " + summarizeReceiptMessage(receipt.message()), true);
+                        if ("completeObjective".equals(receipt.action())) {
+                            LOGGER.info("Run {} stopped after failed objective completion receipt; runtime replan is not attempted for completion checks.", runId);
+                            progress(binding, "Objective is still blocked; stopping with receipts instead of retrying.", true);
+                            return;
+                        }
+
                         if (!AUTO_REPLAN_ON_BLOCKED) {
                             LOGGER.info("Run {} blocked after failed {} receipt. Auto replan is disabled.", runId, receipt.action());
                             return;
                         }
 
                         progress(binding, "Requesting runtime replan from receipts...", true);
-                            var replanResponse = bridgeRequest("POST", "/runs/" + runId + "/replan", runtimeReplanJson(), PLANNER_REQUEST_TIMEOUT_SECONDS);
+                        var replanResponse = bridgeRequest("POST", "/runs/" + runId + "/replan", runtimeReplanJson(), PLANNER_REQUEST_TIMEOUT_SECONDS);
                         if (replanResponse.statusCode() < 200 || replanResponse.statusCode() >= 300) {
                             LOGGER.warn("Runtime replan for {} returned HTTP {}: {}", runId, replanResponse.statusCode(), replanResponse.body());
                             progress(binding, "Runtime replan failed with HTTP " + replanResponse.statusCode() + ".", true);

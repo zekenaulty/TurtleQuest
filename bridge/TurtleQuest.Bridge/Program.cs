@@ -1249,6 +1249,7 @@ public sealed record TurtleRunSnapshot(
     TurtleUserRequest Request,
     TurtleBehavior Behavior,
     int PendingCommands,
+    int RuntimeContinuationCount,
     IReadOnlyList<TurtleCommandReceipt> Receipts,
     TurtleCompletion? Completion);
 
@@ -1319,7 +1320,9 @@ public sealed record Position(int X, int Y, int Z)
 
 public sealed class TurtleRunState
 {
+    private const int MaxRuntimeContinuations = 1;
     private readonly Queue<NextTurtleCommand> _commands;
+    private int _runtimeContinuationCount;
 
     private TurtleRunState(
         string runId,
@@ -1346,6 +1349,8 @@ public sealed class TurtleRunState
     public string Status { get; private set; } = "queued";
 
     public int PendingCommands => _commands.Count;
+
+    public int RuntimeContinuationCount => _runtimeContinuationCount;
 
     public static TurtleRunState Create(string runId, TurtleUserRequest request, TurtleBehaviorCatalog behaviorCatalog)
     {
@@ -1453,12 +1458,19 @@ public sealed class TurtleRunState
             return false;
         }
 
+        if (_runtimeContinuationCount >= MaxRuntimeContinuations)
+        {
+            error = $"Runtime continuation limit reached for this run ({MaxRuntimeContinuations}).";
+            return false;
+        }
+
         _commands.Clear();
         foreach (var step in plan.Steps)
         {
             _commands.Enqueue(Command(RunId, step.Action, step.Arguments));
         }
 
+        _runtimeContinuationCount++;
         Status = _commands.Count == 0 ? "blocked" : "running";
         return true;
     }
@@ -1800,6 +1812,7 @@ public sealed class TurtleRunState
             Request,
             Behavior,
             PendingCommands,
+            RuntimeContinuationCount,
             Receipts.ToArray(),
             Completion);
 
