@@ -305,7 +305,7 @@ Remaining before LLM-backed execution:
 ```text
 an Agentica planner command exists and accepts TurtleAgenticaPlannerCommandRequest JSON on stdin
 the command returns TurtleCompiledPlan JSON on stdout
-the bridge adapter is configured with AGENTICA_TURTLEQUEST_PLANNER_COMMAND
+the bridge adapter is configured with TURTLEQUEST_AGENTICA_PLANNER_COMMAND
 ```
 
 Future cookbook growth loop:

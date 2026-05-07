@@ -5,7 +5,7 @@
 Start the bridge:
 
 ```powershell
-dotnet run --project ./bridge/Agentica.TurtleQuest.Bridge
+dotnet run --project ./bridge/TurtleQuest.Bridge
 ```
 
 Create a run:
@@ -47,8 +47,8 @@ Expected result:
 Start the bridge, then start the NeoForge client:
 
 ```powershell
-dotnet run --project ./bridge/Agentica.TurtleQuest.Bridge
-cd ./mod/agentica-turtlequest-neoforge
+dotnet run --project ./bridge/TurtleQuest.Bridge
+cd ./mod/turtlequest-neoforge
 ./gradlew.bat runClient
 ```
 

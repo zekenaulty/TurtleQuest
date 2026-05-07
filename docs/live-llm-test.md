@@ -7,7 +7,7 @@ This is the TurtleQuest-side path for a live LLM-backed planner test. It does no
 The primary live path is TurtleQuest's own .NET Agentica planner host:
 
 ```text
-planner/Agentica.TurtleQuest.AgenticaPlanner
+planner/TurtleQuest.AgenticaPlanner
 ```
 
 It implements the bridge subprocess contract:
@@ -30,13 +30,15 @@ The older direct Gemini PowerShell shim remains available as a fallback at `scri
 Set secrets and planner routing in the shell that starts the bridge:
 
 ```powershell
-$env:TURTLEQUEST_LLM_ENV_FILE = "C:\Users\Zythis\source\repos\Agentica\.env"
+$root = Split-Path -Parent $PSScriptRoot
+$repoParent = Split-Path -Parent $root
+$env:TURTLEQUEST_LLM_ENV_FILE = Join-Path $repoParent "Agentica/.env"
 $env:TURTLEQUEST_LLM_MODEL = "gemini-2.5-flash"
 
-$env:AGENTICA_TURTLEQUEST_PLANNER_COMMAND = "dotnet"
-$env:AGENTICA_TURTLEQUEST_PLANNER_ARGS = "run --project `"C:\Users\Zythis\source\repos\Agentica.TurtleQuest\planner\Agentica.TurtleQuest.AgenticaPlanner\Agentica.TurtleQuest.AgenticaPlanner.csproj`" --no-restore --"
-$env:AGENTICA_TURTLEQUEST_PLANNER_CWD = "C:\Users\Zythis\source\repos\Agentica.TurtleQuest"
-$env:AGENTICA_TURTLEQUEST_PLANNER_TIMEOUT_SECONDS = "240"
+$env:TURTLEQUEST_AGENTICA_PLANNER_COMMAND = "dotnet"
+$env:TURTLEQUEST_AGENTICA_PLANNER_ARGS = "run --project `"$root\planner\TurtleQuest.AgenticaPlanner\TurtleQuest.AgenticaPlanner.csproj`" --no-restore --"
+$env:TURTLEQUEST_AGENTICA_PLANNER_CWD = $root
+$env:TURTLEQUEST_AGENTICA_PLANNER_TIMEOUT_SECONDS = "240"
 ```
 
 Template:
@@ -113,5 +115,5 @@ Use the trace to inspect the prompt, planner context, generated plan, validation
 
 ## References
 
-- Agentica runner source: `C:\Users\Zythis\source\repos\Agentica\Agentica\Execution\AgenticaRunner.cs`
-- Agentica Gemini client source: `C:\Users\Zythis\source\repos\Agentica\Agentica.Clients\Gemini`
+- Agentica runner source: `..\Agentica\Agentica\Execution\AgenticaRunner.cs`
+- Agentica Gemini client source: `..\Agentica\Agentica.Clients\Gemini`

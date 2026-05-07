@@ -1,6 +1,6 @@
-# Agentica.TurtleQuest
+# TurtleQuest
 
-Agentica.TurtleQuest is a NeoForge sandbox for testing Agentica with an embodied, scoped Minecraft turtle actor.
+TurtleQuest is a NeoForge sandbox for testing Agentica with an embodied, scoped Minecraft turtle actor.
 
 The first version uses CC: Tweaked as the trusted turtle implementation and keeps Agentica behind a local bridge. The bridge is temporary by design: once `Agentica.API` is ready, the implementation behind the same boundary can be swapped without changing the Minecraft mod contract.
 
@@ -28,7 +28,7 @@ run/         Local runtime files, ignored by git.
 ```powershell
 ./scripts/sync-mods.ps1
 ./scripts/bootstrap-gradle-wrapper.ps1
-dotnet run --project ./bridge/Agentica.TurtleQuest.Bridge
+dotnet run --project ./bridge/TurtleQuest.Bridge
 ```
 
 Launch bridge and the NeoForge client together:
@@ -105,15 +105,15 @@ $env:TURTLEQUEST_RUNTIME_REPLAN_ATTEMPTS = "1"
 To route in-game `/tq ask nearest <prompt>` through the Agentica planner bridge, copy and edit the bridge environment template:
 
 ```powershell
-Copy-Item ./bridge/Agentica.TurtleQuest.Bridge/.env.example ./bridge/Agentica.TurtleQuest.Bridge/.env
+Copy-Item ./bridge/TurtleQuest.Bridge/.env.example ./bridge/TurtleQuest.Bridge/.env
 ```
 
-Set `TURTLEQUEST_PLANNER_MODE=agentica` and point `AGENTICA_TURTLEQUEST_PLANNER_*` at the real planner command before starting the bridge or `./scripts/start-game.ps1`.
+Set `TURTLEQUEST_PLANNER_MODE=agentica` and point `TURTLEQUEST_AGENTICA_PLANNER_*` at the real planner command before starting the bridge or `./scripts/start-game.ps1`.
 
 `./scripts/start-game.ps1` now defaults those values to the local Agentica planner host:
 
 ```text
-planner/Agentica.TurtleQuest.AgenticaPlanner
+planner/TurtleQuest.AgenticaPlanner
 ```
 
 The current live test command is:

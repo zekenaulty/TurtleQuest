@@ -12,7 +12,7 @@ NeoForge TurtleQuest mod
         |
         | HTTP/WebSocket, local only
         v
-Agentica.TurtleQuest.Bridge
+TurtleQuest.Bridge
         |
         | temporary local connector
         v

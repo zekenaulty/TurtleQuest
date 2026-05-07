@@ -71,16 +71,16 @@ TurtleQuest does not modify Agentica. The bridge can call an external Agentica p
 Configuration:
 
 ```text
-AGENTICA_TURTLEQUEST_PLANNER_COMMAND
+TURTLEQUEST_AGENTICA_PLANNER_COMMAND
   required executable path or command name
 
-AGENTICA_TURTLEQUEST_PLANNER_ARGS
+TURTLEQUEST_AGENTICA_PLANNER_ARGS
   optional argument string
 
-AGENTICA_TURTLEQUEST_PLANNER_CWD
+TURTLEQUEST_AGENTICA_PLANNER_CWD
   optional working directory
 
-AGENTICA_TURTLEQUEST_PLANNER_TIMEOUT_SECONDS
+TURTLEQUEST_AGENTICA_PLANNER_TIMEOUT_SECONDS
   optional timeout, default 120
 ```
 
@@ -112,9 +112,9 @@ Smoke command:
 Against a real configured command:
 
 ```powershell
-$env:AGENTICA_TURTLEQUEST_PLANNER_COMMAND = "dotnet"
-$env:AGENTICA_TURTLEQUEST_PLANNER_ARGS = "run --project C:\Users\Zythis\source\repos\Agentica\Agentica.CLI -- turtlequest-plan"
-$env:AGENTICA_TURTLEQUEST_PLANNER_CWD = "C:\Users\Zythis\source\repos\Agentica"
+$env:TURTLEQUEST_AGENTICA_PLANNER_COMMAND = "dotnet"
+$env:TURTLEQUEST_AGENTICA_PLANNER_ARGS = "run --project ..\Agentica\Agentica.CLI -- turtlequest-plan"
+$env:TURTLEQUEST_AGENTICA_PLANNER_CWD = "..\Agentica"
 ./scripts/smoke-agentica-planner.ps1
 ```
 
@@ -243,13 +243,13 @@ TURTLEQUEST_PLANNER_REPAIR_ATTEMPTS
   validator repair attempts for planner mode; default 1
 ```
 
-The bridge loads `.env` and `.env.local` files from the bridge/repository ancestry if they exist, without overriding environment variables that are already set by the parent process. Use `bridge/Agentica.TurtleQuest.Bridge/.env.example` as the local template and keep real `.env` files out of git.
+The bridge loads `.env` and `.env.local` files from the bridge/repository ancestry if they exist, without overriding environment variables that are already set by the parent process. Use `bridge/TurtleQuest.Bridge/.env.example` as the local template and keep real `.env` files out of git.
 
 To make Agentica the default in-game path:
 
 ```powershell
-Copy-Item ./bridge/Agentica.TurtleQuest.Bridge/.env.example ./bridge/Agentica.TurtleQuest.Bridge/.env
-# Edit AGENTICA_TURTLEQUEST_PLANNER_* to point at the real planner command.
+Copy-Item ./bridge/TurtleQuest.Bridge/.env.example ./bridge/TurtleQuest.Bridge/.env
+# Edit TURTLEQUEST_AGENTICA_PLANNER_* to point at the real planner command.
 ./scripts/start-game.ps1
 ```
 
