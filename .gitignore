@@ -9,10 +9,13 @@ out/
 run/mods/*.jar
 run/worlds/
 run/logs/
+run/data/
 run/traces/
 run/traces-*/
 run/*.log
 *.user
 *.suo
 .env
+.env.*
+!.env.example
 .env.local
