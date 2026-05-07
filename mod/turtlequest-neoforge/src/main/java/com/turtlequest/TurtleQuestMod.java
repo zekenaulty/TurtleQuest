@@ -1324,7 +1324,13 @@ public final class TurtleQuestMod {
 
                 var returnResult = returnToPosition(turtle, binding, branchOrigin, 128);
                 if (!returnResult.isSuccess()) {
-                    return branchMinePatternReceipt(command, binding, false, "Branch mine could not return from side branch.", List.of("branch_return_failed"), beforeInventory, turtle, mainRouteId, start, startFacing, mainLength, branchLength, branchCount, branchesCompleted, blocksRemoved);
+                    var returnEvidence = "; recoveryHint=return_to_position_or_stop"
+                            + "; returnTarget=" + branchOrigin.toShortString()
+                            + "; returnCurrent=" + binding.pos().toShortString()
+                            + "; returnTargetKind=branch_origin"
+                            + "; pathDepth=" + binding.path.size()
+                            + "; pathTail=" + pathTail(binding, 8);
+                    return branchMinePatternReceipt(command, binding, false, "Branch mine could not return from side branch.", List.of("branch_return_failed"), beforeInventory, turtle, mainRouteId, start, startFacing, mainLength, branchLength, branchCount, branchesCompleted, blocksRemoved, returnEvidence);
                 }
 
                 var restoreMain = turnTo(turtle, binding, startFacing);
@@ -1339,7 +1345,13 @@ public final class TurtleQuestMod {
         if (returnHome) {
             var returnResult = returnToPosition(turtle, binding, start, 256);
             if (!returnResult.isSuccess()) {
-                return branchMinePatternReceipt(command, binding, false, "Branch mine completed but could not return home.", List.of("branch_mine_return_failed"), beforeInventory, turtle, mainRouteId, start, startFacing, mainLength, branchLength, branchCount, branchesCompleted, blocksRemoved);
+                var returnEvidence = "; recoveryHint=return_to_position_or_stop"
+                        + "; returnTarget=" + start.toShortString()
+                        + "; returnCurrent=" + binding.pos().toShortString()
+                        + "; returnTargetKind=branch_mine_start"
+                        + "; pathDepth=" + binding.path.size()
+                        + "; pathTail=" + pathTail(binding, 8);
+                return branchMinePatternReceipt(command, binding, false, "Branch mine completed but could not return home.", List.of("branch_mine_return_failed"), beforeInventory, turtle, mainRouteId, start, startFacing, mainLength, branchLength, branchCount, branchesCompleted, blocksRemoved, returnEvidence);
             }
 
             turnTo(turtle, binding, startFacing);
@@ -1438,6 +1450,26 @@ public final class TurtleQuestMod {
             int branchCount,
             int branchesCompleted,
             int blocksRemoved) {
+        return branchMinePatternReceipt(command, binding, success, summary, hazards, beforeInventory, turtle, mainRouteId, start, startFacing, mainLength, branchLength, branchCount, branchesCompleted, blocksRemoved, "");
+    }
+
+    private static TurtleReceipt branchMinePatternReceipt(
+            TurtleCommand command,
+            TurtleBinding binding,
+            boolean success,
+            String summary,
+            List<String> hazards,
+            Map<String, Integer> beforeInventory,
+            TurtleBlockEntity turtle,
+            String mainRouteId,
+            BlockPos start,
+            Direction startFacing,
+            int mainLength,
+            int branchLength,
+            int branchCount,
+            int branchesCompleted,
+            int blocksRemoved,
+            String extraEvidence) {
         var slots = inventorySlots(turtle);
         var pressure = inventoryPressure(slots.freeSlots());
         var message = summary
@@ -1455,6 +1487,7 @@ public final class TurtleQuestMod {
                 + "; inventoryFreeSlots=" + slots.freeSlots()
                 + "; inventoryPressure=" + pressure
                 + "; storageRequirement=" + (pressure.equals("high") || pressure.equals("full") ? "inventory_pressure" : "none")
+                + extraEvidence
                 + ".";
         return receipt(command, binding, success, blockAhead(binding), message, hazards, inventoryDelta(beforeInventory, inventorySummary(turtle)));
     }
@@ -1744,6 +1777,20 @@ public final class TurtleQuestMod {
 
     private static String positionKey(BlockPos pos) {
         return pos.getX() + "," + pos.getY() + "," + pos.getZ();
+    }
+
+    private static String pathTail(TurtleBinding binding, int maxItems) {
+        if (binding.path.isEmpty()) {
+            return "empty";
+        }
+
+        var start = Math.max(0, binding.path.size() - Math.max(1, maxItems));
+        var positions = new ArrayList<String>();
+        for (var index = start; index < binding.path.size(); index++) {
+            positions.add(binding.path.get(index).toShortString());
+        }
+
+        return String.join("|", positions);
     }
 
     private static String columnKey(BlockPos pos) {

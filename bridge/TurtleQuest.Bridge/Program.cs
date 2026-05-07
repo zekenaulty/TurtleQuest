@@ -2228,6 +2228,18 @@ public static class TurtlePlanner
         var normalizedMode = string.IsNullOrWhiteSpace(mode)
             ? "agentica"
             : mode.Trim().ToLowerInvariant();
+        if (TryBuildReturnToPositionContinuation(context, out var targetedContinuation))
+        {
+            return new TurtleRuntimeReplanResult(
+                normalizedMode,
+                context,
+                targetedContinuation,
+                targetedContinuation.Validation,
+                repairs,
+                Applied: false,
+                Continuation: null);
+        }
+
         var plan = normalizedMode switch
         {
             "agentica" => await AgenticaSubprocessPlanner.GenerateContinuationAsync(context, repairs, repairAttempts),
@@ -2243,6 +2255,103 @@ public static class TurtlePlanner
             repairs,
             Applied: false,
             Continuation: null);
+    }
+
+    private static bool TryBuildReturnToPositionContinuation(
+        TurtleRuntimeReplanContext context,
+        out TurtleCompiledPlan plan)
+    {
+        plan = default!;
+        if (context.FailedReceipt.Action != "branchMinePattern")
+        {
+            return false;
+        }
+
+        var message = context.FailedReceipt.Message ?? "";
+        if (!message.Contains("recoveryHint=return_to_position_or_stop", StringComparison.Ordinal) ||
+            !TryExtractPositionToken(message, "returnTarget", out var target))
+        {
+            return false;
+        }
+
+        var steps = new[]
+        {
+            new TurtleCompiledPlanStep("emitStatus", new Dictionary<string, object?>
+            {
+                ["stage"] = "return_to_position_recovery",
+                ["reason"] = context.FailedReceipt.Action,
+                ["target"] = $"{target.X},{target.Y},{target.Z}"
+            }),
+            new TurtleCompiledPlanStep("returnToPosition", new Dictionary<string, object?>
+            {
+                ["x"] = target.X,
+                ["y"] = target.Y,
+                ["z"] = target.Z,
+                ["budget"] = 192
+            }),
+            new TurtleCompiledPlanStep("emitStatus", new Dictionary<string, object?>
+            {
+                ["stage"] = "return_to_position_or_stopped",
+                ["target"] = $"{target.X},{target.Y},{target.Z}"
+            }),
+            new TurtleCompiledPlanStep("completeObjective", new Dictionary<string, object?>
+            {
+                ["artifactKind"] = "turtlequest.objective_partial_recovery",
+                ["stage"] = "return_to_position_or_stopped"
+            })
+        };
+        var validation = TurtlePlanCompiler.ValidateContinuationPlan(steps, 16);
+        plan = new TurtleCompiledPlan(
+            $"plan-{Guid.NewGuid():N}",
+            "targeted_runtime_continuation",
+            context.Run.Behavior.BehaviorId,
+            "host_recovery",
+            new Dictionary<string, object?>
+            {
+                ["failedAction"] = context.FailedReceipt.Action,
+                ["failedCommandId"] = context.FailedReceipt.CommandId,
+                ["recoveryHint"] = "return_to_position_or_stop",
+                ["returnTarget"] = $"{target.X},{target.Y},{target.Z}",
+                ["returnCurrent"] = ExtractToken(message, "returnCurrent"),
+                ["pathDepth"] = ExtractToken(message, "pathDepth"),
+                ["pathTail"] = ExtractToken(message, "pathTail")
+            },
+            steps,
+            validation);
+        return true;
+    }
+
+    private static bool TryExtractPositionToken(string message, string key, out Position position)
+    {
+        position = default!;
+        var token = ExtractToken(message, key);
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return false;
+        }
+
+        var parts = token.Split(',', StringSplitOptions.TrimEntries);
+        if (parts.Length != 3 ||
+            !int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var x) ||
+            !int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var y) ||
+            !int.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out var z))
+        {
+            return false;
+        }
+
+        position = new Position(x, y, z);
+        return true;
+    }
+
+    private static string? ExtractToken(string? message, string key)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return null;
+        }
+
+        var match = Regex.Match(message, $@"(?:^|[;\s]){Regex.Escape(key)}=([^;\s.]+)", RegexOptions.CultureInvariant);
+        return match.Success ? match.Groups[1].Value.Trim() : null;
     }
 
     private static TurtlePlannerContext BuildContext(

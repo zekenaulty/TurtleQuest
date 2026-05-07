@@ -260,7 +260,8 @@ static string[] BehaviorSpecificRules(string? behaviorId, bool isRuntimeReplan) 
             "For branch_mine_pattern, use the host-owned branchMinePattern primitive once.",
             "Pass mainLength, branchLength, branchCount, spacing, height, sidePattern, mainRouteId, and returnHome.",
             "Include getInventory before and after so inventory pressure and mined material deltas are visible.",
-            "Do not emit deposit_inventory yet; storage deposit remains a later tool unless the user explicitly asks to stop when inventory pressure appears."
+            "Do not emit deposit_inventory yet; storage deposit remains a later tool unless the user explicitly asks to stop when inventory pressure appears.",
+            "Runtime branch return failures may expose recoveryHint=return_to_position_or_stop with returnTarget/current/path evidence. In that case prefer returnToPosition to the provided target before any generic recover_turtle behavior."
         ],
         "turtlequest.bootstrap_home_storage" =>
         [
@@ -348,6 +349,7 @@ static string BuildObjective(string goal, bool isRuntimeReplan)
         Behaviors are the primary skill surface. For known behavior classes, first call the matching turtlequest.behavior.* tool to inspect its allowed host-owned transition and recommended primitive steps.
         In open goal mode, Agentica chooses the behavior tool and its arguments from the user's goal; do not treat the preview behaviorId as authoritative.
         For runtime replans after movement, felling, or return failures, prefer recovery behavior before attempting more mission work from a possibly invalid position.
+        For branchMinePattern failures with recoveryHint=return_to_position_or_stop and returnTarget in receipts, emit a targeted continuation using returnToPosition to that target, then emitStatus, then completeObjective. Do not use generic recoverToGround for that case.
         After observing the behavior tool result, call turtlequest.emit_compiled_plan.
         Put the complete TurtleCompiledPlan JSON object in that tool input's plan field.
         The compiled plan must contain flattened primitive steps only.

@@ -104,6 +104,30 @@ route ids, parent route ids, start/end positions, bounding boxes, clearance, blo
 
 The route memory is included in planner context and visible through `turtlequest.get_context`, so later Agentica runs can reason over known routes.
 
+## Return Failure Recovery
+
+When `branchMinePattern` cannot return from a side branch or cannot return home, the failed receipt now includes targeted recovery evidence:
+
+```text
+recoveryHint=return_to_position_or_stop
+returnTarget=x,y,z
+returnCurrent=x,y,z
+returnTargetKind=branch_origin | branch_mine_start
+pathDepth=N
+pathTail=x,y,z|x,y,z
+```
+
+The bridge treats this as a dedicated runtime continuation and queues:
+
+```text
+emitStatus(stage=return_to_position_recovery)
+returnToPosition(x,y,z,budget=192)
+emitStatus(stage=return_to_position_or_stopped)
+completeObjective(artifactKind=turtlequest.objective_partial_recovery)
+```
+
+This is deliberately not a claim that the original branch mine succeeded. It is a bounded recovery attempt that returns the turtle to the nearest known route point or stops with receipts.
+
 ## Smoke Commands
 
 In-game after restarting the bridge/mod:
@@ -143,7 +167,7 @@ craft barrel
 ore-specific mining policy
 torch placement
 fluid/lava handling beyond stop evidence
-return_to_waypoint
+return_to_waypoint from persisted route memory
 descending stair mineshaft
 ```
 
