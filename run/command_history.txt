@@ -1,0 +1,16 @@
+/tq ask nearest Dig a straight tunnel 5 blocks forward and return.
+/tq kit
+/tq ask nearest Dig a straight tunnel 5 blocks forward and return.
+/tq ask nearest Dig a 5x5 pit 1 block deep.
+/tq ask nearest Dig a straight tunnel 5 blocks forward and return.
+/tq ask nearest Find a nearby tree.
+/tq kit
+/tq ask nearest Find a nearby tree.
+/tq ask nearest Harvest a nearby tree.
+/tq ask nearest gather wood
+/tq ask nearest Harvest a nearby tree.
+/tq ask nearest gather wood
+/tq ask nearest gather wood from 6 nearby trees and return here
+/tq ask nearest gather wood from trees, until you have at least 32 of any log
+/tq ask nearest gather wood from trees, until you have at least 128 of any log
+/tq ask nearest gather wood from trees, until you have at least 128 of oak logs

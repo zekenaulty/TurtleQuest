@@ -1,0 +1,26 @@
+{
+  "id": "example.assist",
+  "goal": "Assist the player by inspecting local context without mutating the world.",
+  "behaviorId": "turtlequest.assist",
+  "assumptions": [
+    "The turtle exists and is bound by the host.",
+    "The request is diagnostic and should not move or edit blocks."
+  ],
+  "ir": {
+    "steps": [
+      { "action": "startBehavior" },
+      { "action": "inspect" },
+      { "action": "inspectDown" },
+      { "action": "emitStatus" },
+      { "action": "completeObjective" }
+    ]
+  },
+  "expectedReceipts": {
+    "startBehavior": 1,
+    "inspect": 1,
+    "inspectDown": 1,
+    "emitStatus": 1,
+    "completeObjective": 1
+  },
+  "expectedInvariant": "No world mutations; completion is accepted from local inspection receipts."
+}

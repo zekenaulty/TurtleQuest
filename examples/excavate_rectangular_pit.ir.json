@@ -1,0 +1,27 @@
+{
+  "id": "example.excavate_rectangular_pit",
+  "goal": "Dig a 5x5 pit 1 block deep.",
+  "behaviorId": "turtlequest.excavate_rectangular_pit",
+  "assumptions": [
+    "The turtle starts at one corner of the planned footprint.",
+    "The turtle clears blocks below its path.",
+    "The request does not require return home."
+  ],
+  "ir": {
+    "steps": [
+      { "action": "startBehavior" },
+      { "repeat": { "count": 25, "steps": [
+        { "action": "inspectDown" },
+        { "action": "digDown" }
+      ]}},
+      { "action": "completeObjective" }
+    ],
+    "note": "The real compiled baseline interleaves snake-pattern movement between cells."
+  },
+  "expectedReceipts": {
+    "inspectDown": 25,
+    "digDown": 25,
+    "completeObjective": 1
+  },
+  "expectedInvariant": "At least 25 footprint blocks below the turtle path changed to air/passable."
+}

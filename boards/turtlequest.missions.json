@@ -1,0 +1,83 @@
+{
+  "boardId": "turtlequest.missions",
+  "title": "TurtleQuest Mission Board",
+  "quests": [
+    {
+      "questId": "TQ-RESOURCE-001",
+      "title": "Find a nearby tree",
+      "prompt": "Find a nearby tree and report what you see.",
+      "behaviorId": "turtlequest.find_tree",
+      "arguments": {
+        "targetResource": "minecraft:logs",
+        "radius": 12,
+        "returnHome": false
+      },
+      "successCriteria": {
+        "completionArtifact": "turtlequest.objective_completed",
+        "minimumEvidence": ["scanNearby", "matches", "nearest"]
+      }
+    },
+    {
+      "questId": "TQ-RESOURCE-002",
+      "title": "Approach a nearby tree",
+      "prompt": "Harvest a nearby tree.",
+      "behaviorId": "turtlequest.harvest_tree",
+      "arguments": {
+        "targetResource": "minecraft:logs",
+        "radius": 12,
+        "pathBudget": 12,
+        "stage": "approach_only",
+        "returnHome": false
+      },
+      "successCriteria": {
+        "completionArtifact": "turtlequest.objective_completed",
+        "minimumEvidence": ["scanNearby", "moveTowardRelative", "adjacentCandidate"]
+      }
+    },
+    {
+      "questId": "TQ-MINE-001",
+      "title": "Find diamonds",
+      "prompt": "Find diamonds and return with a report.",
+      "behaviorId": "turtlequest.find_diamonds",
+      "arguments": {
+        "targetResource": "minecraft:diamond",
+        "returnHome": true
+      },
+      "successCriteria": {
+        "completionArtifact": "turtlequest.objective_completed",
+        "requiresLlmPlan": true,
+        "minimumEvidence": ["searchPattern", "hazardChecks", "inventoryOrReport"]
+      }
+    },
+    {
+      "questId": "TQ-BUILD-001",
+      "title": "Build a tower",
+      "prompt": "Build me a simple tower.",
+      "behaviorId": "turtlequest.build_tower",
+      "arguments": {
+        "structureClass": "tower",
+        "returnHome": false
+      },
+      "successCriteria": {
+        "completionArtifact": "turtlequest.objective_completed",
+        "requiresLlmPlan": true,
+        "minimumEvidence": ["foundationFootprint", "height", "placedBlocks"]
+      }
+    },
+    {
+      "questId": "TQ-BUILD-002",
+      "title": "Build a house",
+      "prompt": "Build me a small house.",
+      "behaviorId": "turtlequest.build_house",
+      "arguments": {
+        "structureClass": "house",
+        "returnHome": false
+      },
+      "successCriteria": {
+        "completionArtifact": "turtlequest.objective_completed",
+        "requiresLlmPlan": true,
+        "minimumEvidence": ["footprint", "walls", "entry", "roofOrCeiling"]
+      }
+    }
+  ]
+}

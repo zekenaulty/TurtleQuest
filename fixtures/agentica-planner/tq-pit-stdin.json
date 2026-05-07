@@ -1,0 +1,56 @@
+{
+  "goal": "Dig a 5x5 pit 1 block deep.",
+  "attempt": 1,
+  "context": {
+    "request": {
+      "turtleId": "fixture-turtle",
+      "worldId": "minecraft:overworld",
+      "playerId": "fixture-player",
+      "message": "Dig a 5x5 pit 1 block deep.",
+      "position": {
+        "x": 0,
+        "y": 64,
+        "z": 0
+      },
+      "orientation": "north"
+    },
+    "preview": {
+      "behaviorId": "turtlequest.excavate_rectangular_pit",
+      "planKind": "known_or_compilable",
+      "arguments": {
+        "width": 5,
+        "length": 5,
+        "depth": 1,
+        "returnHome": false
+      },
+      "executable": true,
+      "warnings": []
+    },
+    "supportedPrimitiveActions": [
+      "startBehavior",
+      "inspect",
+      "inspectUp",
+      "inspectDown",
+      "moveForward",
+      "moveBackward",
+      "turnLeft",
+      "turnRight",
+      "dig",
+      "digUp",
+      "digDown",
+      "returnHome",
+      "emitStatus",
+      "completeObjective"
+    ],
+    "cookbookExamples": [],
+    "executionRules": [
+      "Return flattened primitive steps only; do not return repeat, while, branch, or macro nodes.",
+      "The first step must be startBehavior.",
+      "The final step must be completeObjective.",
+      "Use only supported primitive actions.",
+      "Stay within the command budget.",
+      "If the goal cannot be compiled safely with supported primitives, ask for clarification or return a blocked plan."
+    ]
+  },
+  "previousRepairAttempts": []
+}

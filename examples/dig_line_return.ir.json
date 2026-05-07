@@ -1,0 +1,34 @@
+{
+  "id": "example.dig_line_return",
+  "goal": "Dig a straight tunnel 5 blocks forward and return.",
+  "behaviorId": "turtlequest.dig_line_return",
+  "assumptions": [
+    "The turtle starts facing the intended tunnel direction.",
+    "The five blocks ahead are mineable.",
+    "The turtle has an appropriate digging tool."
+  ],
+  "ir": {
+    "steps": [
+      { "action": "startBehavior" },
+      { "repeat": { "count": 5, "steps": [
+        { "action": "inspect" },
+        { "action": "dig" },
+        { "action": "moveForward" }
+      ]}},
+      { "action": "turnRight" },
+      { "action": "turnRight" },
+      { "repeat": { "count": 5, "steps": [
+        { "action": "moveForward" }
+      ]}},
+      { "action": "completeObjective" }
+    ]
+  },
+  "expectedReceipts": {
+    "inspect": 5,
+    "dig": 5,
+    "moveForward": 10,
+    "turnRight": 2,
+    "completeObjective": 1
+  },
+  "expectedInvariant": "Final position equals start; five intended forward blocks changed to air/passable."
+}

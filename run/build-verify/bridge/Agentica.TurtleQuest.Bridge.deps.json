@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "Agentica.TurtleQuest.Bridge/1.0.0": {
+        "runtime": {
+          "Agentica.TurtleQuest.Bridge.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Agentica.TurtleQuest.Bridge/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

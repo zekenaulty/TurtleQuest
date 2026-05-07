@@ -1,0 +1,101 @@
+{
+  "goal": "gather wood from 6 nearby trees and return here",
+  "attempt": 1,
+  "context": {
+    "runId": "fixture-harvest-recovery",
+    "goal": "gather wood from 6 nearby trees and return here",
+    "run": {
+      "runId": "fixture-harvest-recovery",
+      "turtleId": "fixture-turtle",
+      "status": "blocked",
+      "request": {
+        "turtleId": "fixture-turtle",
+        "worldId": "fixture-world",
+        "playerId": "fixture-player",
+        "message": "gather wood from 6 nearby trees and return here",
+        "position": { "x": 0, "y": 64, "z": 0 },
+        "orientation": "north"
+      },
+      "behavior": {
+        "behaviorRunId": "tqb-fixture",
+        "behaviorId": "turtlequest.harvest_tree",
+        "arguments": {
+          "targetCount": 6,
+          "radius": 12,
+          "pathBudget": 12,
+          "returnHome": true
+        },
+        "commandBudget": 512
+      },
+      "pendingCommands": 12,
+      "receipts": [
+        {
+          "runId": "fixture-harvest-recovery",
+          "turtleId": "fixture-turtle",
+          "commandId": "cmd-failed",
+          "action": "moveTowardRelative",
+          "success": false,
+          "position": { "x": 4, "y": 67, "z": -2 },
+          "orientation": "north",
+          "observedAt": "2026-05-07T04:30:00Z",
+          "blockAhead": "minecraft:birch_leaves",
+          "hazards": [ "cc_tweaked_command_failed" ],
+          "inventoryDelta": {},
+          "message": "moveTowardRelative blocked after 0 step(s). Movement obstructed from elevated canopy."
+        }
+      ],
+      "completion": null
+    },
+    "failedReceipt": {
+      "runId": "fixture-harvest-recovery",
+      "turtleId": "fixture-turtle",
+      "commandId": "cmd-failed",
+      "action": "moveTowardRelative",
+      "success": false,
+      "position": { "x": 4, "y": 67, "z": -2 },
+      "orientation": "north",
+      "observedAt": "2026-05-07T04:30:00Z",
+      "blockAhead": "minecraft:birch_leaves",
+      "hazards": [ "cc_tweaked_command_failed" ],
+      "inventoryDelta": {},
+      "message": "moveTowardRelative blocked after 0 step(s). Movement obstructed from elevated canopy."
+    },
+    "pendingCommands": 12,
+    "supportedPrimitiveActions": [
+      "startBehavior",
+      "inspect",
+      "inspectUp",
+      "inspectDown",
+      "moveForward",
+      "moveBackward",
+      "moveUp",
+      "moveDown",
+      "face",
+      "moveTowardRelative",
+      "recoverToGround",
+      "turnLeft",
+      "turnRight",
+      "dig",
+      "digUp",
+      "digDown",
+      "digRememberedTarget",
+      "fellRememberedTree",
+      "place",
+      "placeUp",
+      "placeDown",
+      "selectSlot",
+      "getInventory",
+      "scanNearby",
+      "returnHome",
+      "emitStatus",
+      "completeObjective"
+    ],
+    "executionRules": [
+      "Return flattened primitive steps only; do not return repeat, while, branch, or macro nodes.",
+      "The final step must be completeObjective.",
+      "Use only supported primitive actions.",
+      "Stay within the command budget."
+    ]
+  },
+  "previousRepairAttempts": []
+}

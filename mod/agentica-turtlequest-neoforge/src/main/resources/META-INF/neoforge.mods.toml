@@ -1,0 +1,25 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "MIT"
+
+[[mods]]
+modId = "agentica_turtlequest"
+version = "${mod_version}"
+displayName = "${mod_name}"
+authors = "${mod_authors}"
+description = '''${mod_description}'''
+
+[[dependencies.agentica_turtlequest]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.agentica_turtlequest]]
+modId = "computercraft"
+type = "required"
+versionRange = "[1.118.0,)"
+ordering = "AFTER"
+side = "BOTH"
+

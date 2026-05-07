@@ -1,0 +1,71 @@
+{
+  "boardId": "turtlequest.smoke",
+  "title": "TurtleQuest Smoke Board",
+  "quests": [
+    {
+      "questId": "TQ-000",
+      "title": "Assist with local inspection",
+      "prompt": "Assist me.",
+      "behaviorId": "turtlequest.assist",
+      "arguments": {
+        "returnHome": false
+      },
+      "successCriteria": {
+        "completionArtifact": "turtlequest.objective_completed",
+        "minimumSuccessfulInspectReceipts": 1
+      }
+    },
+    {
+      "questId": "TQ-001",
+      "title": "Dig straight tunnel and return",
+      "prompt": "Dig a straight tunnel 5 blocks forward and return.",
+      "behaviorId": "turtlequest.dig_line_return",
+      "arguments": {
+        "length": 5,
+        "returnHome": true
+      },
+      "successCriteria": {
+        "completionArtifact": "turtlequest.objective_completed",
+        "finalPosition": "start",
+        "minimumSuccessfulDigReceipts": 5
+      }
+    },
+    {
+      "questId": "TQ-002",
+      "title": "Excavate shallow 5x5 pit",
+      "prompt": "Dig a 5x5 pit 1 block deep.",
+      "behaviorId": "turtlequest.excavate_rectangular_pit",
+      "arguments": {
+        "width": 5,
+        "length": 5,
+        "depth": 1,
+        "returnHome": false
+      },
+      "successCriteria": {
+        "completionArtifact": "turtlequest.objective_completed",
+        "minimumSuccessfulDigDownReceipts": 25,
+        "expectedChangedFootprint": {
+          "width": 5,
+          "length": 5,
+          "depth": 1
+        }
+      }
+    },
+    {
+      "questId": "TQ-003",
+      "title": "Build a simple column",
+      "prompt": "Build a column 5 blocks tall.",
+      "behaviorId": "turtlequest.build_column",
+      "arguments": {
+        "height": 5,
+        "slot": 1,
+        "returnHome": false
+      },
+      "successCriteria": {
+        "completionArtifact": "turtlequest.objective_completed",
+        "minimumSuccessfulPlaceDownReceipts": 5,
+        "expectedColumnHeight": 5
+      }
+    }
+  ]
+}

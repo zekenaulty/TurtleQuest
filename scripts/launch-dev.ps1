@@ -1,0 +1,32 @@
+$ErrorActionPreference = "Stop"
+
+$root = Split-Path -Parent $PSScriptRoot
+
+& (Join-Path $PSScriptRoot "sync-mods.ps1")
+
+Write-Host "Start the bridge with:"
+Write-Host "  dotnet run --project $root/bridge/Agentica.TurtleQuest.Bridge"
+Write-Host "Bridge URL:"
+Write-Host "  http://127.0.0.1:57421"
+Write-Host ""
+Write-Host "Optional Agentica planner adapter env:"
+Write-Host "  `$env:AGENTICA_TURTLEQUEST_PLANNER_COMMAND = '<command>'"
+Write-Host "  `$env:AGENTICA_TURTLEQUEST_PLANNER_ARGS = '<args>'"
+Write-Host "  `$env:TURTLEQUEST_USE_PLANNER_FOR_PROMPTS = 'true'"
+Write-Host "  `$env:TURTLEQUEST_DEFAULT_PLANNER_MODE = 'agentica'"
+Write-Host "  `$env:TURTLEQUEST_AUTO_REPLAN_ON_BLOCKED = 'true'"
+Write-Host "  ./scripts/smoke-agentica-planner.ps1"
+Write-Host ""
+Write-Host "Start the NeoForge client from:"
+Write-Host "  $root/mod/agentica-turtlequest-neoforge"
+Write-Host "using Gradle task:"
+Write-Host "  ./gradlew.bat runClient"
+Write-Host ""
+Write-Host "Or start bridge + game together with:"
+Write-Host "  ./scripts/start-game.ps1"
+Write-Host ""
+Write-Host "In-game smoke commands:"
+Write-Host "  /tq kit"
+Write-Host "  /tq ask nearest Dig a straight tunnel 5 blocks forward and return."
+Write-Host "  /tq simulate <runId>"
+Write-Host "  /tq status <runId>"

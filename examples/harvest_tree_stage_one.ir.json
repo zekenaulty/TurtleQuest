@@ -1,0 +1,72 @@
+{
+  "id": "example.harvest_tree_stage_one",
+  "goal": "Approach a nearby tree, fell the trunk, and return to the starting position.",
+  "behaviorId": "turtlequest.harvest_tree",
+  "assumptions": [
+    "The turtle can scan a bounded local volume for log-like blocks.",
+    "scanNearby stores the nearest candidate for the following movement primitive.",
+    "The host owns target-bound cutting and vertical tree felling so the agent does not guess at block offsets.",
+    "The turtle returns using breadcrumb path receipts."
+  ],
+  "ir": {
+    "steps": [
+      { "action": "startBehavior" },
+      {
+        "action": "scanNearby",
+        "arguments": {
+          "radius": "$radius",
+          "tag": "minecraft:logs",
+          "blockContains": "_log",
+          "maxMatches": 16
+        }
+      },
+      {
+        "action": "moveTowardRelative",
+        "arguments": {
+          "source": "lastScanNearest",
+          "budget": "$pathBudget",
+          "stopAdjacent": true
+        }
+      },
+      {
+        "action": "digRememberedTarget",
+        "arguments": {
+          "source": "lastScanNearest",
+          "expectedTag": "minecraft:logs"
+        }
+      },
+      {
+        "action": "fellRememberedTree",
+        "arguments": {
+          "maxHeight": 12,
+          "expectedTag": "minecraft:logs"
+        }
+      },
+      { "action": "getInventory" },
+      {
+        "action": "returnHome",
+        "arguments": {
+          "mode": "breadcrumbs"
+        }
+      },
+      {
+        "action": "emitStatus",
+        "arguments": {
+          "stage": "full_tree_felled_returned"
+        }
+      },
+      { "action": "completeObjective" }
+    ]
+  },
+  "expectedReceipts": {
+    "scanNearby": 1,
+    "moveTowardRelative": 1,
+    "digRememberedTarget": 1,
+    "fellRememberedTree": 1,
+    "getInventory": 1,
+    "returnHome": 1,
+    "emitStatus": 1,
+    "completeObjective": 1
+  },
+  "expectedInvariant": "The turtle reaches an adjacent remembered log candidate, cuts the base log, clears vertical log blocks above the base through the host-owned felling primitive, records inventory evidence, and returns to the starting position."
+}

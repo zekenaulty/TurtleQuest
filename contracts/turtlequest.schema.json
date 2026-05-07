@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentica.local/schemas/turtlequest.schema.json",
+  "title": "TurtleQuest Contract",
+  "type": "object",
+  "$defs": {
+    "Position": {
+      "type": "object",
+      "required": ["x", "y", "z"],
+      "properties": {
+        "x": { "type": "integer" },
+        "y": { "type": "integer" },
+        "z": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "TurtleUserRequest": {
+      "type": "object",
+      "required": ["turtleId", "worldId", "message", "position", "orientation"],
+      "properties": {
+        "turtleId": { "type": "string" },
+        "worldId": { "type": "string" },
+        "playerId": { "type": "string" },
+        "message": { "type": "string" },
+        "position": { "$ref": "#/$defs/Position" },
+        "orientation": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "NextTurtleCommand": {
+      "type": "object",
+      "required": ["runId", "commandId", "action"],
+      "properties": {
+        "runId": { "type": "string" },
+        "commandId": { "type": "string" },
+        "action": {
+          "enum": [
+            "startBehavior",
+            "inspect",
+            "inspectUp",
+            "inspectDown",
+            "moveForward",
+            "moveBackward",
+            "moveUp",
+            "moveDown",
+            "turnLeft",
+            "turnRight",
+            "dig",
+            "digUp",
+            "digDown",
+            "place",
+            "placeUp",
+            "placeDown",
+            "getInventory",
+            "selectSlot",
+            "scanNearby",
+            "returnHome",
+            "emitStatus",
+            "completeObjective"
+          ]
+        },
+        "arguments": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "TurtleBehavior": {
+      "type": "object",
+      "required": ["behaviorRunId", "behaviorId", "arguments", "commandBudget"],
+      "properties": {
+        "behaviorRunId": { "type": "string" },
+        "behaviorId": {
+          "enum": [
+            "turtlequest.dig_line_return",
+            "turtlequest.excavate_rectangular_pit",
+            "turtlequest.find_diamonds",
+            "turtlequest.build_tower",
+            "turtlequest.build_house",
+            "turtlequest.assist",
+            "turtlequest.follow",
+            "turtlequest.unsupported"
+          ]
+        },
+        "arguments": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "commandBudget": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "TurtleCommandReceipt": {
+      "type": "object",
+      "required": ["runId", "turtleId", "commandId", "action", "success", "position", "orientation", "observedAt"],
+      "properties": {
+        "runId": { "type": "string" },
+        "turtleId": { "type": "string" },
+        "commandId": { "type": "string" },
+        "action": { "type": "string" },
+        "success": { "type": "boolean" },
+        "position": { "$ref": "#/$defs/Position" },
+        "orientation": { "type": "string" },
+        "observedAt": { "type": "string", "format": "date-time" },
+        "blockAhead": { "type": "string" },
+        "hazards": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "inventoryDelta": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" }
+        },
+        "message": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "WorldFragmentSnapshot": {
+      "type": "object",
+      "required": ["snapshotId", "worldId", "origin", "size", "capturedAt", "blocks"],
+      "properties": {
+        "snapshotId": { "type": "string" },
+        "worldId": { "type": "string" },
+        "turtleId": { "type": "string" },
+        "origin": { "$ref": "#/$defs/Position" },
+        "size": {
+          "type": "object",
+          "required": ["x", "y", "z"],
+          "properties": {
+            "x": { "type": "integer", "minimum": 1 },
+            "y": { "type": "integer", "minimum": 1 },
+            "z": { "type": "integer", "minimum": 1 }
+          },
+          "additionalProperties": false
+        },
+        "capturedAt": { "type": "string", "format": "date-time" },
+        "turtlePosition": { "$ref": "#/$defs/Position" },
+        "turtleOrientation": { "type": "string" },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["x", "y", "z", "block"],
+            "properties": {
+              "x": { "type": "integer" },
+              "y": { "type": "integer" },
+              "z": { "type": "integer" },
+              "block": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "TurtleCompletion": {
+      "type": "object",
+      "required": ["success", "artifactKind", "message", "evidence"],
+      "properties": {
+        "success": { "type": "boolean" },
+        "artifactKind": { "const": "turtlequest.objective_completed" },
+        "message": { "type": "string" },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "TurtleRunSnapshot": {
+      "type": "object",
+      "required": ["runId", "turtleId", "status", "request", "behavior", "pendingCommands", "receipts"],
+      "properties": {
+        "runId": { "type": "string" },
+        "turtleId": { "type": "string" },
+        "status": {
+          "enum": ["queued", "running", "awaiting_completion", "completed", "blocked", "failed"]
+        },
+        "request": { "$ref": "#/$defs/TurtleUserRequest" },
+        "behavior": { "$ref": "#/$defs/TurtleBehavior" },
+        "pendingCommands": { "type": "integer", "minimum": 0 },
+        "receipts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/TurtleCommandReceipt" }
+        },
+        "completion": { "$ref": "#/$defs/TurtleCompletion" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "id": "example.build_wall",
+  "goal": "Build a flat rectangular wall from selected material.",
+  "behaviorId": "example.build_wall",
+  "assumptions": [
+    "The turtle has enough material.",
+    "Width and height are bounded.",
+    "The wall plane is clear or replaceable."
+  ],
+  "ir": {
+    "steps": [
+      { "action": "startBehavior" },
+      { "repeat": { "count": "$height", "steps": [
+        { "repeat": { "count": "$width", "steps": [
+          { "action": "place" },
+          { "action": "moveForward" }
+        ]}},
+        { "action": "moveUp" },
+        { "action": "turnRight" },
+        { "action": "turnRight" }
+      ]}},
+      { "action": "completeObjective" }
+    ]
+  },
+  "expectedReceipts": {
+    "place": "width*height",
+    "completeObjective": 1
+  },
+  "expectedInvariant": "Placed block pattern covers the expected rectangular wall footprint."
+}

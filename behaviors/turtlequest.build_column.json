@@ -1,0 +1,50 @@
+{
+  "id": "turtlequest.build_column",
+  "kind": "behavior",
+  "description": "Build a simple vertical column under the turtle using the selected inventory slot.",
+  "params": {
+    "height": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16
+    },
+    "slot": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16,
+      "default": 1
+    },
+    "returnHome": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "steps": [
+    { "action": "startBehavior" },
+    { "action": "selectSlot" },
+    { "action": "getInventory" },
+    {
+      "repeat": {
+        "count": "$height",
+        "steps": [
+          { "action": "inspectUp" },
+          { "action": "moveUp" },
+          { "action": "placeDown" },
+          { "action": "emitStatus" }
+        ]
+      }
+    },
+    { "action": "completeObjective" }
+  ],
+  "successCriteria": {
+    "completionArtifact": "turtlequest.objective_completed",
+    "minimumSuccessfulPlaceDownReceipts": "$height",
+    "expectedColumnHeight": "$height"
+  },
+  "failureModes": [
+    "turtle_missing",
+    "invalid_slot",
+    "cc_tweaked_command_failed",
+    "objective_not_satisfied"
+  ]
+}

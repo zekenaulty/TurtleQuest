@@ -1,0 +1,45 @@
+{
+  "id": "turtlequest.find_tree",
+  "kind": "behavior",
+  "description": "Scan the turtle's bounded local world fragment for nearby tree logs and report evidence without moving or harvesting.",
+  "params": {
+    "radius": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16,
+      "default": 12
+    },
+    "targetResource": {
+      "type": "string",
+      "default": "minecraft:logs"
+    },
+    "returnHome": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "steps": [
+    { "action": "startBehavior" },
+    {
+      "action": "scanNearby",
+      "arguments": {
+        "radius": "$radius",
+        "tag": "minecraft:logs",
+        "blockContains": "_log",
+        "maxMatches": 16
+      }
+    },
+    { "action": "emitStatus" },
+    { "action": "completeObjective" }
+  ],
+  "successCriteria": {
+    "completionArtifact": "turtlequest.objective_completed",
+    "minimumScanNearbyReceipts": 1,
+    "evidence": ["radius", "targetResource", "matches", "nearest"]
+  },
+  "failureModes": [
+    "turtle_missing",
+    "unsupported_command",
+    "objective_not_satisfied"
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "id": "example.build_column",
+  "goal": "Build a simple vertical column from selected material.",
+  "behaviorId": "example.build_column",
+  "assumptions": [
+    "The turtle has selected a placeable block.",
+    "The target column position is clear enough for placement.",
+    "The requested height is bounded."
+  ],
+  "ir": {
+    "steps": [
+      { "action": "startBehavior" },
+      { "action": "selectSlot", "arguments": { "slot": "$slot" } },
+      { "action": "getInventory" },
+      { "repeat": { "count": "$height", "steps": [
+        { "action": "inspectUp" },
+        { "action": "moveUp" },
+        { "action": "placeDown" },
+        { "action": "emitStatus", "arguments": { "stage": "work_progress" } }
+      ]}},
+      { "action": "completeObjective" }
+    ]
+  },
+  "expectedReceipts": {
+    "inspectUp": "$height",
+    "placeDown": "$height",
+    "moveUp": "$height",
+    "emitStatus": "$height",
+    "completeObjective": 1
+  },
+  "expectedInvariant": "A vertical stack of placed blocks exists within the expected column footprint."
+}

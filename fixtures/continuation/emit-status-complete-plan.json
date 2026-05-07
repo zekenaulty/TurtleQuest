@@ -1,0 +1,30 @@
+{
+  "planId": "plan-fixture-continuation-status",
+  "planKind": "agentica_continuation_fixture",
+  "behaviorId": "turtlequest.excavate_rectangular_pit",
+  "source": "continuation_fixture",
+  "arguments": {
+    "reason": "blocked_dig"
+  },
+  "steps": [
+    {
+      "action": "emitStatus",
+      "arguments": {
+        "message": "Blocked by an unmineable block; stopping safely."
+      }
+    },
+    {
+      "action": "completeObjective",
+      "arguments": {
+        "artifactKind": "turtlequest.objective_completed"
+      }
+    }
+  ],
+  "validation": {
+    "valid": true,
+    "commandCount": 2,
+    "commandBudget": 16,
+    "errors": [],
+    "warnings": []
+  }
+}

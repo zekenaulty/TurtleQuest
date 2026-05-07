@@ -1,0 +1,26 @@
+{
+  "id": "turtlequest.assist",
+  "kind": "behavior",
+  "description": "Report immediate local context without mutating the world.",
+  "params": {
+    "returnHome": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "steps": [
+    { "action": "startBehavior" },
+    { "action": "inspect" },
+    { "action": "inspectDown" },
+    { "action": "emitStatus" },
+    { "action": "completeObjective" }
+  ],
+  "successCriteria": {
+    "completionArtifact": "turtlequest.objective_completed",
+    "minimumSuccessfulInspectReceipts": 1
+  },
+  "failureModes": [
+    "turtle_missing",
+    "unsupported_command"
+  ]
+}

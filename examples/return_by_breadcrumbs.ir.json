@@ -1,0 +1,27 @@
+{
+  "id": "example.return_by_breadcrumbs",
+  "goal": "Return to the starting point by replaying a bounded breadcrumb trail in reverse.",
+  "behaviorId": "example.return_by_breadcrumbs",
+  "assumptions": [
+    "The host recorded the successful outbound move receipts.",
+    "The return path is the reverse of the outbound path.",
+    "The turtle turns to face each return segment before moving."
+  ],
+  "ir": {
+    "steps": [
+      { "action": "startBehavior" },
+      { "action": "turnRight" },
+      { "action": "turnRight" },
+      { "repeat": { "count": "$successfulForwardMoves", "steps": [
+        { "action": "moveForward" }
+      ]}},
+      { "action": "completeObjective" }
+    ]
+  },
+  "expectedReceipts": {
+    "turnRight": 2,
+    "moveForward": "$successfulForwardMoves",
+    "completeObjective": 1
+  },
+  "expectedInvariant": "Final position equals the recorded start position; every return move faces the direction of travel."
+}

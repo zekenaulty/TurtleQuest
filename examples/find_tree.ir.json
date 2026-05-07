@@ -1,0 +1,38 @@
+{
+  "id": "example.find_tree",
+  "goal": "Find a nearby tree without harvesting it yet.",
+  "behaviorId": "turtlequest.find_tree",
+  "assumptions": [
+    "The turtle is in a loaded world chunk.",
+    "The first resource-fetch slice should gather evidence only.",
+    "Navigation and harvesting are separate behavior slices."
+  ],
+  "ir": {
+    "steps": [
+      { "action": "startBehavior" },
+      {
+        "action": "scanNearby",
+        "arguments": {
+          "radius": "$radius",
+          "tag": "minecraft:logs",
+          "blockContains": "_log",
+          "maxMatches": 16
+        }
+      },
+      {
+        "action": "emitStatus",
+        "arguments": {
+          "stage": "scan_complete",
+          "target": "minecraft:logs"
+        }
+      },
+      { "action": "completeObjective" }
+    ]
+  },
+  "expectedReceipts": {
+    "scanNearby": 1,
+    "emitStatus": 1,
+    "completeObjective": 1
+  },
+  "expectedInvariant": "A bounded scan receipt reports the number of matching log-like blocks and nearest relative positions."
+}
